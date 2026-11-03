@@ -451,6 +451,16 @@ export class PaneCompositeBar extends Disposable {
 			return true;
 		}
 
+		// Kosha: stock Chat / Council / Copilot Chat Debug never appear in Auxiliary Bar (Kosha Chat only).
+		if (this.location === ViewContainerLocation.AuxiliaryBar && (
+			viewContainerId === 'workbench.panel.chat' ||
+			viewContainerId === 'workbench.panel.council' ||
+			viewContainerId === 'workbench.view.extension.copilot-chat' ||
+			viewContainerId === 'workbench.sessions.panel.chatDebugContainer'
+		)) {
+			return true;
+		}
+
 		if (viewContainer) {
 			if (viewContainer.hideIfEmpty) {
 				if (this.viewService.isViewContainerActive(viewContainerId)) {

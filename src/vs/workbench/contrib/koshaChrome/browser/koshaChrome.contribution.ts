@@ -19,7 +19,7 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 import { IAuthenticationService } from '../../../services/authentication/common/authentication.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IWorkbenchLayoutService, Parts } from '../../../services/layout/browser/layoutService.js';
-import { ChatViewContainerId } from '../../chat/browser/chat.js';
+import { KoshaChatViewContainerId } from '../../koshaChat/common/koshaChat.js';
 
 // Config defaults for KB MVP — hide IDE chrome without deleting contrib trees.
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
@@ -38,7 +38,9 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 			'chat.titleBar.signIn.enabled': false,
 			'chat.agentsWindowBanner.enabled': false,
 			'chat.agentsWindowBanner.developerMode': false,
-			// Cursor-like right Chat rail: keep auxiliary bar visible with Chat.
+			'workbench.commandPalette.experimental.askChatLocation': 'chatView',
+			'workbench.commandPalette.showAskInChat': false,
+			// Cursor-like right Chat rail: keep auxiliary bar visible with Kosha Chat.
 			'workbench.sideBar.location': 'left',
 		}
 	}]);
@@ -56,7 +58,7 @@ class KoshaChromeNotificationsContribution extends Disposable implements IWorkbe
 	}
 }
 
-/** Ensure the Cursor-like Chat rail is visible in the Auxiliary Bar on startup. */
+/** Ensure the Kosha Chat rail is the sole Auxiliary Bar surface on startup. */
 class KoshaChatRailContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.koshaChatRail';
@@ -67,7 +69,7 @@ class KoshaChatRailContribution extends Disposable implements IWorkbenchContribu
 	) {
 		super();
 		layoutService.setPartHidden(false, Parts.AUXILIARYBAR_PART);
-		void viewsService.openViewContainer(ChatViewContainerId, true);
+		void viewsService.openViewContainer(KoshaChatViewContainerId, true);
 	}
 }
 

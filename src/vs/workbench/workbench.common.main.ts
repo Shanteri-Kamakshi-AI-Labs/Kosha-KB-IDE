@@ -226,19 +226,22 @@ import './contrib/notebook/browser/notebook.contribution.js';
 import './contrib/speech/browser/speech.contribution.js';
 
 // Council (default Auxiliary Bar)
-import './contrib/council/browser/council.contribution.js';
+// Kosha: Council personas panel removed from Auxiliary Bar (Kosha Chat only).
+// import './contrib/council/browser/council.contribution.js';
 
 // Memory Cards (replaces Run and Debug activity-bar slot)
 import './contrib/memoryCards/browser/memoryCards.contribution.js';
 
 // Agents (replaces Extensions activity-bar slot)
 import './contrib/agents/browser/agents.contribution.js';
+import './contrib/kshetro/browser/kshetro.contribution.js';
 
 // Kosha color mode toggle (status bar)
 import './contrib/koshaTheme/browser/koshaThemeToggle.contribution.js';
 
 // Kosha KB MVP chrome strip (config defaults + notification filter)
 import './contrib/koshaChrome/browser/koshaChrome.contribution.js';
+import './contrib/koshaChat/browser/koshaChat.contribution.js';
 
 // Chat
 import './contrib/chat/browser/chat.shared.contribution.js';

@@ -202,6 +202,11 @@ export interface IProductConfiguration {
 		readonly clientId: string;
 		readonly scopes: readonly string[];
 	};
+	/** Kosha KB IDE: chat REST + Socket.IO backends. */
+	readonly koshaApi?: {
+		readonly restBaseUrl: string;
+		readonly socketOrigin: string;
+	};
 	readonly inheritAuthAccountPreference?: IStringDictionary<string[]>;
 	readonly trustedExtensionProtocolHandlers?: readonly string[];
 

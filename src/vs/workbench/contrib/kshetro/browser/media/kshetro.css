@@ -1,0 +1,120 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.kosha-kshetro-pane {
+	--kosha-gold: #c4a35a;
+	--kosha-gold-soft: color-mix(in srgb, #c4a35a 18%, transparent);
+	--kosha-line: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	box-sizing: border-box;
+	padding: 10px 10px 12px;
+	gap: 10px;
+}
+
+.kosha-kshetro-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.kosha-kshetro-title {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--vscode-descriptionForeground);
+}
+
+.kosha-kshetro-new {
+	appearance: none;
+	border: 1px solid color-mix(in srgb, var(--kosha-gold) 45%, transparent);
+	background: var(--kosha-gold-soft);
+	color: color-mix(in srgb, var(--kosha-gold) 80%, var(--vscode-foreground));
+	font-size: 11px;
+	font-weight: 600;
+	padding: 4px 8px;
+	border-radius: 999px;
+	cursor: pointer;
+}
+.kosha-kshetro-new:hover {
+	border-color: var(--kosha-gold);
+	color: var(--vscode-foreground);
+}
+
+.kosha-kshetro-intro {
+	margin: 0;
+	color: var(--vscode-descriptionForeground);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.kosha-kshetro-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	overflow: auto;
+	min-height: 0;
+	flex: 1;
+}
+
+.kosha-kshetro-item {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+	width: 100%;
+	text-align: left;
+	padding: 10px 12px;
+	border: 1px solid var(--kosha-line);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--vscode-foreground);
+	cursor: pointer;
+}
+.kosha-kshetro-item:hover {
+	background: color-mix(in srgb, var(--vscode-foreground) 6%, transparent);
+}
+.kosha-kshetro-item.active {
+	border-color: color-mix(in srgb, var(--kosha-gold) 50%, transparent);
+	background: var(--kosha-gold-soft);
+}
+.kosha-kshetro-item-name {
+	font-weight: 600;
+	font-size: 13px;
+}
+.kosha-kshetro-item-meta {
+	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.kosha-kshetro-empty {
+	padding: 16px 8px;
+	text-align: center;
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+	line-height: 1.4;
+}
+
+.kosha-kshetro-clear {
+	appearance: none;
+	align-self: flex-start;
+	border: none;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	font-size: 11px;
+	cursor: pointer;
+	padding: 2px 0;
+}
+.kosha-kshetro-clear:hover {
+	color: var(--kosha-gold);
+}

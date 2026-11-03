@@ -94,6 +94,10 @@
 		"clientId": "kosha-kb-ide",
 		"scopes": ["openid", "profile", "email"]
 	},
+	"koshaApi": {
+		"restBaseUrl": "https://kosha.skaill.app/api",
+		"socketOrigin": "https://kosha.skaill.app"
+	},
 	"trustedExtensionAuthAccess": {
 		"keycloak": []
 	},

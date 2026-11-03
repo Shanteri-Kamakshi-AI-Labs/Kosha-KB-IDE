@@ -78,9 +78,9 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 	static readonly ID = 'workbench.contrib.chatSetup';
 
 	constructor(
-		@IActionViewItemService actionViewItemService: IActionViewItemService,
+		@IActionViewItemService _actionViewItemService: IActionViewItemService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@IChatEntitlementService chatEntitlementService: ChatEntitlementService,
+		@IChatEntitlementService _chatEntitlementService: ChatEntitlementService,
 		@ILogService private readonly logService: ILogService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService,
@@ -91,21 +91,10 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 	) {
 		super();
-
-		const context = chatEntitlementService.context?.value;
-		const requests = chatEntitlementService.requests?.value;
-		if (!context || !requests) {
-			return; // disabled
-		}
-
-		const controller = new Lazy(() => this._register(this.instantiationService.createInstance(ChatSetupController, context, requests)));
-
-		this.registerSetupAgents(context, controller);
-		this.registerGrowthSession(chatEntitlementService);
-		this.registerActions(context, requests, controller);
-		this.registerSignInTitleBarEntry(actionViewItemService);
-		this.registerUrlLinkHandler();
-		this.checkExtensionInstallation(context);
+		// Kosha: stock Chat setup agents / Copilot welcome (“Build with Agent”) are disabled.
+		// Keycloak + Kosha Chat replace this surface. Methods below remain for tree compatibility.
+		void _actionViewItemService;
+		void _chatEntitlementService;
 	}
 
 	private registerSetupAgents(context: ChatEntitlementContext, controller: Lazy<ChatSetupController>): void {

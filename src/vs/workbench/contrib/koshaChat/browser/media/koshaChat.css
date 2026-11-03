@@ -1,0 +1,625 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.kosha-chat-pane {
+	--kosha-gold: #c4a35a;
+	--kosha-gold-soft: color-mix(in srgb, #c4a35a 18%, transparent);
+	--kosha-line: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+	--kosha-well: color-mix(in srgb, var(--vscode-input-background) 92%, #0c0d10);
+	--kosha-fg: var(--vscode-foreground);
+	--kosha-muted: var(--vscode-descriptionForeground);
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	position: relative;
+	background: var(--vscode-sideBar-background);
+	color: var(--kosha-fg);
+	font-size: 13px;
+}
+
+/* —— session strip —— */
+.kosha-chat-strip {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px 4px;
+	border-bottom: 1px solid var(--kosha-line);
+	flex-shrink: 0;
+	min-height: 36px;
+}
+
+.kosha-chat-project-chip {
+	flex-shrink: 0;
+	max-width: 96px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 3px 8px;
+	border-radius: 999px;
+	border: 1px solid color-mix(in srgb, var(--kosha-gold) 45%, transparent);
+	background: var(--kosha-gold-soft);
+	color: color-mix(in srgb, var(--kosha-gold) 85%, var(--kosha-fg));
+}
+
+.kosha-chat-tabs {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 1;
+	min-width: 0;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.kosha-chat-tabs::-webkit-scrollbar { display: none; }
+
+.kosha-chat-tab {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 140px;
+	padding: 4px 6px 4px 8px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--kosha-muted);
+	font-size: 12px;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.kosha-chat-tab:hover { background: color-mix(in srgb, var(--kosha-fg) 6%, transparent); color: var(--kosha-fg); }
+.kosha-chat-tab.active { background: color-mix(in srgb, var(--kosha-fg) 8%, transparent); color: var(--kosha-fg); }
+
+.kosha-chat-tab-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.kosha-chat-tab-close {
+	opacity: 0.45;
+	font-size: 14px;
+	line-height: 1;
+	padding: 0 2px;
+}
+.kosha-chat-tab:hover .kosha-chat-tab-close { opacity: 0.85; }
+
+.kosha-chat-tab-ghost {
+	font-size: 12px;
+	color: var(--kosha-muted);
+	padding: 0 6px;
+	opacity: 0.7;
+}
+
+.kosha-chat-strip-actions {
+	display: flex;
+	gap: 2px;
+	flex-shrink: 0;
+}
+
+.kosha-chat-icon-btn {
+	appearance: none;
+	width: 30px;
+	height: 30px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--kosha-muted);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 18px;
+}
+.kosha-chat-icon-btn::before {
+	transform: scale(1.15);
+}
+.kosha-chat-icon-btn:hover {
+	background: color-mix(in srgb, var(--kosha-fg) 8%, transparent);
+	color: var(--kosha-fg);
+}
+.kosha-chat-icon-btn:focus-visible {
+	outline: 1px solid var(--kosha-gold);
+	outline-offset: 1px;
+}
+
+/* —— history drawer —— */
+.kosha-chat-history {
+	position: absolute;
+	inset: 36px 0 0 0;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	background: color-mix(in srgb, var(--vscode-sideBar-background) 96%, #000);
+	border-bottom: 1px solid var(--kosha-line);
+	box-shadow: 0 12px 32px color-mix(in srgb, #000 35%, transparent);
+}
+
+.kosha-chat-history-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 12px 6px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--kosha-muted);
+}
+
+.kosha-chat-history-list {
+	overflow: auto;
+	padding: 4px 8px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.kosha-chat-history-row {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	width: 100%;
+	text-align: left;
+	padding: 8px 10px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--kosha-fg);
+	cursor: pointer;
+	font-size: 12.5px;
+}
+.kosha-chat-history-row:hover,
+.kosha-chat-history-row.active {
+	background: color-mix(in srgb, var(--kosha-fg) 7%, transparent);
+}
+.kosha-chat-history-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.kosha-chat-history-meta {
+	flex-shrink: 0;
+	font-size: 11px;
+	color: var(--kosha-muted);
+}
+.kosha-chat-history-empty {
+	padding: 24px 12px;
+	text-align: center;
+	color: var(--kosha-muted);
+	font-size: 12px;
+}
+
+/* —— transcript —— */
+.kosha-chat-transcript {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding: 8px 12px 6px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.kosha-chat-empty {
+	margin: auto;
+	max-width: 220px;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding-bottom: 32px;
+}
+.kosha-chat-empty-mark {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	border: 1px solid color-mix(in srgb, var(--kosha-gold) 40%, transparent);
+	background: radial-gradient(circle at 30% 30%, var(--kosha-gold-soft), transparent 70%);
+}
+.kosha-chat-empty strong {
+	font-size: 15px;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+}
+.kosha-chat-empty-body {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--kosha-muted);
+}
+
+.kosha-chat-turn {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-width: 100%;
+}
+.kosha-chat-turn.user {
+	align-self: flex-end;
+	align-items: flex-end;
+	max-width: 90%;
+}
+.kosha-chat-turn.assistant,
+.kosha-chat-turn.system,
+.kosha-chat-turn.status {
+	align-self: stretch;
+	align-items: flex-start;
+}
+
+.kosha-chat-bubble {
+	max-width: 100%;
+	font-size: 13px;
+	line-height: 1.45;
+	word-break: break-word;
+}
+.kosha-chat-bubble.user {
+	padding: 7px 10px;
+	border-radius: 12px 12px 4px 12px;
+	background: var(--kosha-gold-soft);
+	border: 1px solid color-mix(in srgb, var(--kosha-gold) 28%, transparent);
+	white-space: pre-wrap;
+}
+.kosha-chat-bubble.assistant,
+.kosha-chat-bubble.system {
+	padding: 0;
+	/* HTML markdown — never pre-wrap or blank lines become giant gaps */
+	white-space: normal;
+}
+.kosha-chat-bubble.status {
+	white-space: pre-wrap;
+}
+
+.kosha-chat-turn-actions {
+	display: flex;
+	gap: 2px;
+	opacity: 0.55;
+}
+.kosha-chat-turn:hover .kosha-chat-turn-actions {
+	opacity: 1;
+}
+.kosha-chat-turn-action {
+	appearance: none;
+	width: 24px;
+	height: 24px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--kosha-muted);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
+}
+.kosha-chat-turn-action:hover {
+	background: color-mix(in srgb, var(--kosha-fg) 8%, transparent);
+	color: var(--kosha-gold);
+}
+.kosha-chat-turn-action:focus-visible {
+	outline: 1px solid var(--kosha-gold);
+	outline-offset: 1px;
+}
+
+.kosha-chat-md {
+	font-size: 13px;
+	line-height: 1.45;
+}
+.kosha-chat-md > :first-child { margin-top: 0 !important; }
+.kosha-chat-md > :last-child { margin-bottom: 0 !important; }
+.kosha-chat-md p,
+.kosha-chat-md ul,
+.kosha-chat-md ol,
+.kosha-chat-md pre,
+.kosha-chat-md blockquote,
+.kosha-chat-md table {
+	margin: 0 0 0.4em;
+}
+.kosha-chat-md p:empty,
+.kosha-chat-md p:has(> br:only-child) {
+	display: none;
+}
+.kosha-chat-md h1,
+.kosha-chat-md h2,
+.kosha-chat-md h3,
+.kosha-chat-md h4,
+.kosha-chat-md h5,
+.kosha-chat-md h6 {
+	margin: 0.55em 0 0.25em;
+	font-size: 13px;
+	font-weight: 650;
+	line-height: 1.35;
+	letter-spacing: 0;
+}
+.kosha-chat-md h1 { font-size: 14px; }
+.kosha-chat-md h2 { font-size: 13.5px; }
+.kosha-chat-md li {
+	margin: 0;
+	padding: 0;
+	line-height: 1.4;
+}
+.kosha-chat-md li + li { margin-top: 0.15em; }
+.kosha-chat-md ul,
+.kosha-chat-md ol {
+	padding-left: 1.25em;
+}
+.kosha-chat-md pre {
+	padding: 7px 9px;
+	border-radius: 8px;
+	overflow: auto;
+	background: color-mix(in srgb, var(--vscode-textCodeBlock-background, #1e1e1e) 90%, transparent);
+	border: 1px solid var(--kosha-line);
+}
+.kosha-chat-md code {
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 0.92em;
+}
+.kosha-chat-md :not(pre) > code {
+	padding: 1px 4px;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--kosha-fg) 8%, transparent);
+}
+.kosha-chat-md table {
+	border-collapse: collapse;
+	font-size: 12px;
+}
+.kosha-chat-md th,
+.kosha-chat-md td {
+	border: 1px solid var(--kosha-line);
+	padding: 3px 7px;
+}
+.kosha-chat-md .katex-display {
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding: 2px 0;
+	margin: 0.35em 0;
+}
+.kosha-chat-md a { color: var(--vscode-textLink-foreground); }
+.kosha-chat-md hr {
+	margin: 0.5em 0;
+	border: none;
+	border-top: 1px solid var(--kosha-line);
+}
+.kosha-chat-bubble.status {
+	align-self: center;
+	font-size: 11px;
+	color: var(--vscode-errorForeground);
+}
+.kosha-chat-bubble.streaming::after {
+	content: '';
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	margin-left: 5px;
+	border-radius: 50%;
+	background: var(--kosha-gold);
+	vertical-align: middle;
+	animation: kosha-pulse 1s ease-in-out infinite;
+}
+@keyframes kosha-pulse {
+	0%, 100% { opacity: 0.3; }
+	50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.kosha-chat-bubble.streaming::after { animation: none; }
+}
+
+/* —— composer (Cursor-like) —— */
+.kosha-chat-composer {
+	flex-shrink: 0;
+	padding: 8px 10px 12px;
+}
+
+.kosha-chat-composer-well {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 10px 8px;
+	border-radius: 12px;
+	background: var(--kosha-well);
+	border: 1px solid var(--kosha-line);
+	box-shadow: 0 1px 0 color-mix(in srgb, #fff 3%, transparent) inset;
+}
+
+.kosha-chat-attach-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.kosha-chat-file-chip {
+	font-size: 11px;
+	padding: 3px 8px;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--kosha-fg) 8%, transparent);
+	color: var(--kosha-muted);
+	max-width: 160px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.kosha-chat-input {
+	width: 100%;
+	min-height: 44px;
+	max-height: 160px;
+	resize: none;
+	border: none;
+	background: transparent;
+	color: var(--kosha-fg);
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1.45;
+	padding: 2px 2px 4px;
+	box-sizing: border-box;
+}
+.kosha-chat-input::placeholder {
+	color: color-mix(in srgb, var(--kosha-muted) 80%, transparent);
+}
+/* Beat .monaco-workbench textarea:focus { outline-color: focusBorder } (gold in kosha-dark) */
+.monaco-workbench .kosha-chat-pane textarea.kosha-chat-input:focus,
+.monaco-workbench .kosha-chat-pane textarea.kosha-chat-input:focus-visible {
+	outline: none !important;
+	outline-width: 0 !important;
+	outline-style: none !important;
+	outline-color: transparent !important;
+	box-shadow: none !important;
+	border-color: transparent !important;
+}
+
+.kosha-chat-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-top: 2px;
+}
+.kosha-chat-bar-left,
+.kosha-chat-bar-right {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+}
+
+.kosha-chat-pill {
+	appearance: none;
+	border: 1px solid var(--kosha-line);
+	background: color-mix(in srgb, var(--kosha-fg) 5%, transparent);
+	color: var(--kosha-fg);
+	font-size: 12px;
+	font-weight: 500;
+	padding: 5px 10px;
+	border-radius: 999px;
+	cursor: pointer;
+	max-width: 180px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.kosha-chat-pill:hover {
+	background: color-mix(in srgb, var(--kosha-fg) 8%, transparent);
+}
+.kosha-chat-pill:focus-visible {
+	outline: 1px solid var(--kosha-gold);
+	outline-offset: 1px;
+}
+
+.kosha-chat-send,
+.kosha-chat-stop {
+	appearance: none;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	border: none;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	font-weight: 700;
+	line-height: 1;
+}
+.kosha-chat-send {
+	background: var(--kosha-gold);
+	/* Beat theme .codicon { color: icon-foreground } so glyph isn't washed-out gray on gold */
+	color: #1a1408 !important;
+}
+.kosha-chat-send::before {
+	color: #1a1408 !important;
+	transform: scale(1.35);
+	/* Codicons are outline glyphs — fake a heavier stroke */
+	-webkit-text-stroke: 0.7px #1a1408;
+	paint-order: stroke fill;
+}
+.kosha-chat-send:hover:not(:disabled) { filter: brightness(1.08); }
+.kosha-chat-send:disabled { opacity: 0.35; cursor: default; }
+.kosha-chat-stop {
+	background: transparent;
+	border: 1px solid color-mix(in srgb, var(--vscode-errorForeground) 50%, transparent);
+	color: var(--vscode-errorForeground);
+	font-size: 14px;
+}
+
+/* —— popovers —— */
+.kosha-chat-popover-host {
+	position: absolute;
+	left: 10px;
+	right: 10px;
+	bottom: 88px;
+	z-index: 6;
+	pointer-events: none;
+}
+.kosha-chat-popover {
+	pointer-events: auto;
+	max-height: min(320px, 50vh);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	border-radius: 10px;
+	border: 1px solid var(--kosha-line);
+	background: color-mix(in srgb, var(--vscode-editorWidget-background, var(--vscode-sideBar-background)) 96%, #000);
+	box-shadow: 0 12px 40px color-mix(in srgb, #000 45%, transparent);
+}
+.kosha-chat-popover-model,
+.kosha-chat-popover-skills { padding: 0; max-height: min(380px, 55vh); }
+.kosha-chat-popover-search {
+	margin: 8px 8px 4px;
+	padding: 7px 10px;
+	border-radius: 7px;
+	border: 1px solid var(--kosha-line);
+	background: var(--vscode-input-background);
+	color: var(--kosha-fg);
+	font-size: 12px;
+}
+.kosha-chat-popover-search:focus { outline: 1px solid var(--kosha-gold); }
+.kosha-chat-popover-list {
+	overflow: auto;
+	padding: 4px 6px 8px;
+}
+.kosha-chat-popover-group {
+	padding: 8px 8px 4px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--kosha-muted);
+}
+.kosha-chat-popover-item {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 1px;
+	width: 100%;
+	text-align: left;
+	padding: 7px 8px;
+	border: none;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--kosha-fg);
+	cursor: pointer;
+	font-size: 12.5px;
+}
+.kosha-chat-popover-item:hover,
+.kosha-chat-popover-item.active {
+	background: color-mix(in srgb, var(--kosha-fg) 8%, transparent);
+}
+.kosha-chat-popover-item-title { font-weight: 500; }
+.kosha-chat-popover-item-sub {
+	font-size: 11px;
+	color: var(--kosha-muted);
+}
+.kosha-chat-popover-empty {
+	padding: 16px 10px;
+	text-align: center;
+	font-size: 12px;
+	color: var(--kosha-muted);
+}

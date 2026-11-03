@@ -101,7 +101,8 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 		super(
 			Parts.AUXILIARYBAR_PART,
 			{
-				hasTitle: true,
+				// Kosha: no composite title (“Kosha Chat” bar) — session tabs are the chrome.
+				hasTitle: false,
 				trailingSeparator: true,
 				borderWidth: () => (this.getColor(SIDE_BAR_BORDER) || this.getColor(contrastBorder)) ? 1 : 0,
 			},
@@ -273,26 +274,8 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	}
 
 	protected shouldShowCompositeBar(): boolean {
-		if (this.configuration.position === ActivityBarPosition.HIDDEN) {
-			return false;
-		}
-
-		// Check if auto-hide is enabled and there's only one visible view container
-		// while the activity bar is configured to be top or bottom.
-		if (this.configuration.position === ActivityBarPosition.TOP || this.configuration.position === ActivityBarPosition.BOTTOM) {
-			const autoHide = this.configurationService.getValue<boolean>(LayoutSettings.ACTIVITY_BAR_AUTO_HIDE);
-			if (autoHide) {
-				// Use visible composite count from the composite bar if available (considers pinned state),
-				// otherwise fall back to the tracker's count (based on active view descriptors).
-				// Note: We access paneCompositeBar directly to avoid circular calls with getVisiblePaneCompositeIds()
-				const visibleCount = this.visibleViewContainersTracker.visibleCount;
-				if (visibleCount <= 1) {
-					return false;
-				}
-			}
-		}
-
-		return true;
+		// Kosha: sole Auxiliary Bar surface is Kosha Chat — no composite switcher chrome.
+		return false;
 	}
 
 	protected getCompositeBarPosition(): CompositeBarPosition {

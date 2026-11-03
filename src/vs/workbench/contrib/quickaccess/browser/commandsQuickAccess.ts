@@ -40,7 +40,7 @@ import { CHAT_OPEN_ACTION_ID } from '../../chat/browser/actions/chatActions.js';
 import { ASK_QUICK_QUESTION_ACTION_ID } from '../../chat/browser/actions/chatQuickInputActions.js';
 import { IChatAgentService } from '../../chat/common/participants/chatAgents.js';
 import { ChatAgentLocation } from '../../chat/common/constants.js';
-import { isKoshaStrippedCommand } from '../../koshaChrome/common/koshaChrome.js';
+import { isKoshaStrippedCommand, isKoshaStrippedPaletteCategory, isKoshaStrippedPaletteLabel } from '../../koshaChrome/common/koshaChrome.js';
 
 export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAccessProvider {
 
@@ -243,8 +243,14 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 
 			// Category
 			const category = typeof action.item.category === 'string' ? action.item.category : action.item.category?.value;
+			if (isKoshaStrippedPaletteCategory(category)) {
+				continue;
+			}
 			if (category) {
 				label = localize('commandWithCategory', "{0}: {1}", category, label);
+			}
+			if (isKoshaStrippedPaletteLabel(label)) {
+				continue;
 			}
 
 			// Alias

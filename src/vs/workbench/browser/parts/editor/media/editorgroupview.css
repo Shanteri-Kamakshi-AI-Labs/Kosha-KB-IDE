@@ -131,23 +131,29 @@
 	width: 100%;
 	max-height: 100%;
 	aspect-ratio: 1/1;
-	background-image: url('./letterpress-light.svg');
+	/* SKAL Light Transparent symbol — soft watermark */
+	background-image: url('./letterpress-light.png');
 	background-size: contain;
 	background-position-x: center;
 	background-repeat: no-repeat;
 	max-width: 256px;
+	opacity: 0.45;
 }
 
 .monaco-workbench.vs-dark .part.editor > .content .editor-group-container .editor-group-watermark .letterpress {
-	background-image: url('./letterpress-dark.svg');
+	/* SKAL Dark Transparent symbol (white/gold) for dark themes */
+	background-image: url('./letterpress-dark.png');
+	opacity: 0.55;
 }
 
 .monaco-workbench.hc-light .part.editor > .content .editor-group-container .editor-group-watermark .letterpress {
-	background-image: url('./letterpress-hcLight.svg');
+	background-image: url('./letterpress-hcLight.png');
+	opacity: 0.65;
 }
 
 .monaco-workbench.hc-black .part.editor > .content .editor-group-container .editor-group-watermark .letterpress {
-	background-image: url('./letterpress-hcDark.svg');
+	background-image: url('./letterpress-hcDark.png');
+	opacity: 0.7;
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .editor-group-watermark-wrapper .editor-group-watermark .shortcuts {
