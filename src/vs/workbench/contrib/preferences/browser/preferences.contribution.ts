@@ -17,7 +17,7 @@ import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../plat
 import { CommandsRegistry, ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { InputFocusedContext, IsMacNativeContext } from '../../../../platform/contextkey/common/contextkeys.js';
+import { InputFocusedContext } from '../../../../platform/contextkey/common/contextkeys.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { KeybindingWeight, KeybindingsRegistry } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
@@ -224,6 +224,8 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private registerSettingsActions() {
+		// Kosha KB MVP: Settings UI stripped — commands remain registered as no-ops so
+		// keybindings/extensions that invoke them do not throw, but menus/palette are gone.
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
 				super({
@@ -232,27 +234,10 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 						...nls.localize2('settings', "Settings"),
 						mnemonicTitle: nls.localize({ key: 'miOpenSettings', comment: ['&& denotes a mnemonic'] }, "&&Settings"),
 					},
-					keybinding: {
-						weight: KeybindingWeight.WorkbenchContrib,
-						when: null,
-						primary: KeyMod.CtrlCmd | KeyCode.Comma,
-					},
-					menu: [{
-						id: MenuId.GlobalActivity,
-						group: '2_configuration',
-						order: 2
-					}, {
-						id: MenuId.MenubarPreferencesMenu,
-						group: '2_configuration',
-						order: 2
-					}],
+					f1: false,
 				});
 			}
-			run(accessor: ServicesAccessor, args: string | IOpenSettingsActionOptions) {
-				// args takes a string for backcompat
-				const opts = typeof args === 'string' ? { query: args } : sanitizeOpenSettingsArgs(args);
-				return accessor.get(IPreferencesService).openSettings({ ...opts });
-			}
+			run() { /* no-op */ }
 		}));
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
@@ -260,13 +245,10 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 					id: 'workbench.action.openSettings2',
 					title: nls.localize2('openSettings2', "Open Settings (UI)"),
 					category,
-					f1: true,
+					f1: false,
 				});
 			}
-			run(accessor: ServicesAccessor, args: IOpenSettingsActionOptions) {
-				args = sanitizeOpenSettingsArgs(args);
-				return accessor.get(IPreferencesService).openSettings({ jsonEditor: false, ...args });
-			}
+			run() { /* no-op */ }
 		}));
 
 		this._register(registerAction2(class extends Action2 {
@@ -278,13 +260,10 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 						description: nls.localize2('workbench.action.openSettingsJson.description', "Opens the JSON file containing the current user profile settings")
 					},
 					category,
-					f1: true,
+					f1: false,
 				});
 			}
-			run(accessor: ServicesAccessor, args: IOpenSettingsActionOptions) {
-				args = sanitizeOpenSettingsArgs(args);
-				return accessor.get(IPreferencesService).openSettings({ jsonEditor: true, ...args });
-			}
+			run() { /* no-op */ }
 		}));
 
 		const that = this;
@@ -1524,10 +1503,11 @@ registerEditorContribution(SettingsEditorContribution.ID, SettingsEditorContribu
 
 // Preferences menu
 
+// Kosha KB MVP: Preferences / Settings menus stripped.
 MenuRegistry.appendMenuItem(MenuId.MenubarFileMenu, {
 	title: nls.localize({ key: 'miPreferences', comment: ['&& denotes a mnemonic'] }, "&&Preferences"),
 	submenu: MenuId.MenubarPreferencesMenu,
 	group: '5_autosave',
 	order: 2,
-	when: IsMacNativeContext.toNegated() // on macOS native the preferences menu is separate under the application menu
+	when: ContextKeyExpr.false(),
 });

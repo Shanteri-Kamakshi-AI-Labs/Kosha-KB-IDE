@@ -81,6 +81,9 @@ export async function initMicrosoftSovereignCloudAuthProvider(
 }
 
 export async function activate(context: ExtensionContext) {
+	// Kosha: Keycloak-only auth — do not register Microsoft providers.
+	return;
+
 	const mainTelemetryReporter = new MicrosoftAuthenticationTelemetryReporter(context.extension.packageJSON.aiKey);
 	implementation = getImplementation();
 	context.subscriptions.push(workspace.onDidChangeConfiguration(async e => {

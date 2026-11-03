@@ -38,7 +38,6 @@ const COMMONLY_USED_SETTINGS: readonly string[] = [
 	'editor.wordWrap',
 	'chat.agent.maxRequests',
 	'files.exclude',
-	'workbench.colorTheme',
 	'editor.tabSize',
 	'editor.mouseWheelZoom',
 	'editor.formatOnPaste'

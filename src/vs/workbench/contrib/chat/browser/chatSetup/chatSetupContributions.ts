@@ -70,11 +70,8 @@ const defaultChat = {
 
 const SIGN_IN_TITLE_BAR_ACTION_ID = 'workbench.action.chat.signInIndicator';
 
-export const ChatSetupFromAccountsWhen = ContextKeyExpr.and(
-	ChatContextKeys.Setup.hidden.negate(),
-	ChatContextKeys.Setup.disabledInWorkspace.negate(),
-	CONTEXT_DEFAULT_ACCOUNT_STATE.notEqualsTo(DefaultAccountStatus.Available),
-);
+// Kosha: Copilot Accounts sign-in stripped — Keycloak is the only login path.
+export const ChatSetupFromAccountsWhen = ContextKeyExpr.false();
 
 export class ChatSetupContribution extends Disposable implements IWorkbenchContribution {
 

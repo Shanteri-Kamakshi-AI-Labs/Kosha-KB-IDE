@@ -35,8 +35,6 @@ import { Dialog, DialogContentsAlignment } from '../../base/browser/ui/dialog/di
 import { createWorkbenchDialogOptions } from '../../workbench/browser/parts/dialogs/dialog.js';
 import { MarkdownString } from '../../base/common/htmlContent.js';
 import { localize } from '../../nls.js';
-import { createSessionsSignInDialogOptions, SessionsSigningInDialog } from './sessionsSignInDialog.js';
-import { SHOULD_SHOW_RETURN_TO_VSCODE_EDITOR_COMMAND_ID } from '../common/sessionCommands.js';
 import { ISessionsManagementService } from '../services/sessions/common/sessionsManagement.js';
 
 const AIDisabledConfig = 'chat.disableAIFeatures';
@@ -102,13 +100,13 @@ class SessionsSetUpWidget extends Disposable {
 		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
 		@ILogService private readonly logService: ILogService,
-		@ICommandService private readonly commandService: ICommandService,
+		@ICommandService _commandService: ICommandService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
 		@IHostService private readonly hostService: IHostService,
 		@IMarkdownRendererService private readonly markdownRendererService: IMarkdownRendererService,
-		@IInstantiationService private readonly instantiationService: IInstantiationService,
+		@IInstantiationService _instantiationService: IInstantiationService,
 		@ISessionsManagementService private readonly sessionsManagementService: ISessionsManagementService,
 	) {
 		super();
@@ -454,67 +452,13 @@ class SessionsSetUpWidget extends Disposable {
 		return { element: overlay, dispose: () => overlay.remove() };
 	}
 
-	private async _showSignInDialog(allowContinueWithoutSignIn = false): Promise<boolean> {
+	private async _showSignInDialog(_allowContinueWithoutSignIn = false): Promise<boolean> {
+		// Kosha: no GitHub Copilot sessions sign-in — continue without stock identity.
+		this.logService.info('[sessions welcome] Skipping stock sign-in dialog (Keycloak-only)');
 		if (this._initialSetupFlow) {
 			this.onInitialSignInDialogShown();
 		}
-		this.logService.info('[sessions welcome] Showing sign-in dialog');
-
-		const setupCancellation = new CancellationTokenSource();
-		this.signInSetupCancellation.value = setupCancellation;
-		while (true) {
-			const attemptDisposables = new DisposableStore();
-			const signingInDialogRef = attemptDisposables.add(new MutableDisposable<SessionsSigningInDialog>());
-			let canceled = false;
-			let continueWithoutSignIn = false;
-			const showReturnToVSCodeEditor = !isWeb && (await this.commandService.executeCommand<boolean>(SHOULD_SHOW_RETURN_TO_VSCODE_EDITOR_COMMAND_ID)) === true;
-			const onContinueWithoutSignIn = () => {
-				continueWithoutSignIn = true;
-				setupCancellation.cancel();
-			};
-
-			let success: boolean | undefined;
-			try {
-				success = await this.commandService.executeCommand<boolean>('workbench.action.chat.triggerSetup', undefined, {
-					telemetrySource: 'sessionsSetup',
-					...createSessionsSignInDialogOptions(this.commandService, showReturnToVSCodeEditor, allowContinueWithoutSignIn, onContinueWithoutSignIn),
-					cancellationToken: setupCancellation.token,
-					onSignInStarted: (cancel: () => void) => {
-						signingInDialogRef.value = this.instantiationService.createInstance(SessionsSigningInDialog, () => {
-							canceled = true;
-							cancel();
-						});
-					}
-				});
-			} finally {
-				attemptDisposables.dispose();
-			}
-			if (continueWithoutSignIn) {
-				this.logService.info('[sessions welcome] User chose to continue without GitHub sign-in');
-				this.signInSetupCancellation.clear();
-				return true;
-			}
-			if (setupCancellation.token.isCancellationRequested) {
-				this.logService.info('[sessions welcome] Sign-in dialog retired because another agent became usable');
-				this.signInSetupCancellation.clear();
-				return false;
-			}
-
-			if (canceled) {
-				this.logService.info('[sessions welcome] Sign-in canceled; returning to sign-in dialog');
-				continue;
-			}
-
-			if (success) {
-				this.logService.info('[sessions welcome] Sign-in completed successfully');
-				this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-				this.serviceMarkDone();
-			} else {
-				this.logService.info('[sessions welcome] Sign-in was canceled or failed');
-			}
-			this.signInSetupCancellation.clear();
-			return false;
-		}
+		return true;
 	}
 
 	private async _showWelcomeDialog(): Promise<void> {

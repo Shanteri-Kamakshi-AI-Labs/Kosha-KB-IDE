@@ -40,6 +40,7 @@ import { CHAT_OPEN_ACTION_ID } from '../../chat/browser/actions/chatActions.js';
 import { ASK_QUICK_QUESTION_ACTION_ID } from '../../chat/browser/actions/chatQuickInputActions.js';
 import { IChatAgentService } from '../../chat/common/participants/chatAgents.js';
 import { ChatAgentLocation } from '../../chat/common/constants.js';
+import { isKoshaStrippedCommand } from '../../koshaChrome/common/koshaChrome.js';
 
 export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAccessProvider {
 
@@ -232,6 +233,10 @@ export class CommandsQuickAccessProvider extends AbstractEditorCommandsQuickAcce
 			.filter(action => action instanceof MenuItemAction && action.enabled) as MenuItemAction[];
 
 		for (const action of globalCommandsMenuActions) {
+			// Kosha KB MVP: drop IDE chrome commands from the palette.
+			if (isKoshaStrippedCommand(action.item.id)) {
+				continue;
+			}
 
 			// Label
 			let label = (typeof action.item.title === 'string' ? action.item.title : action.item.title.value) || action.item.id;

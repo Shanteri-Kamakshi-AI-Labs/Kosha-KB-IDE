@@ -40,10 +40,10 @@ export enum ThemeSettings {
 }
 
 export namespace ThemeSettingDefaults {
-	export const COLOR_THEME_DARK = 'Dark 2026';
-	export const COLOR_THEME_LIGHT = 'Light 2026';
-	export const COLOR_THEME_HC_DARK = 'Default High Contrast';
-	export const COLOR_THEME_HC_LIGHT = 'Default High Contrast Light';
+	export const COLOR_THEME_DARK = 'Kosha Dark';
+	export const COLOR_THEME_LIGHT = 'Kosha Light';
+	export const COLOR_THEME_HC_DARK = 'Kosha Dark';
+	export const COLOR_THEME_HC_LIGHT = 'Kosha Light';
 
 	export const FILE_ICON_THEME = 'vs-seti';
 	export const PRODUCT_ICON_THEME = 'Default';
@@ -53,16 +53,27 @@ export namespace ThemeSettingDefaults {
  * Migrates legacy theme settings IDs to their current equivalents.
  * Theme IDs were simplified: "Default" prefix was removed from built-in themes,
  * and "Experimental" prefix was replaced when VS Code themes became GA.
+ * Kosha product locks color themes to Kosha Dark / Kosha Light.
  */
 export function migrateThemeSettingsId(settingsId: string): string {
 	switch (settingsId) {
-		case 'Default Dark Modern': return 'Dark Modern';
-		case 'Default Light Modern': return 'Light Modern';
-		case 'Default Dark+': return 'Dark+';
-		case 'Default Light+': return 'Light+';
+		case 'Default Dark Modern':
+		case 'Dark Modern':
+		case 'Default Dark+':
+		case 'Dark+':
+		case 'Dark 2026':
+		case 'Visual Studio Dark':
+		case 'Default High Contrast':
 		case 'Experimental Dark':
 		case 'VS Code Dark':
 			return ThemeSettingDefaults.COLOR_THEME_DARK;
+		case 'Default Light Modern':
+		case 'Light Modern':
+		case 'Default Light+':
+		case 'Light+':
+		case 'Light 2026':
+		case 'Visual Studio Light':
+		case 'Default High Contrast Light':
 		case 'Experimental Light':
 		case 'VS Code Light':
 			return ThemeSettingDefaults.COLOR_THEME_LIGHT;

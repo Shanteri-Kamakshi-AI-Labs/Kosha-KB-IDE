@@ -11,6 +11,9 @@ import { enterpriseUriSetting } from './common/enterpriseStorage';
 import { getSafeNotificationMessage } from './common/notification';
 
 export async function activate(context: vscode.ExtensionContext) {
+	// Kosha: Keycloak-only auth — do not register GitHub / GHE providers.
+	return;
+
 	const uriHandler = new UriEventHandler();
 	context.subscriptions.push(uriHandler);
 	context.subscriptions.push(vscode.window.registerUriHandler(uriHandler));

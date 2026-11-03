@@ -219,15 +219,14 @@ export class AddRootFolderAction extends Action2 {
 			id: AddRootFolderAction.ID,
 			title: ADD_ROOT_FOLDER_LABEL,
 			category: workspacesCategory,
-			f1: true,
+			// Kosha KB MVP: single-folder only — hide multi-root add from palette.
+			f1: false,
 			precondition: ContextKeyExpr.and(ContextKeyExpr.or(EnterMultiRootWorkspaceSupportContext, WorkbenchStateContext.isEqualTo('workspace')), IsSessionsWindowContext.negate())
 		});
 	}
 
-	override run(accessor: ServicesAccessor): Promise<void> {
-		const commandService = accessor.get(ICommandService);
-
-		return commandService.executeCommand(ADD_ROOT_FOLDER_COMMAND_ID);
+	override run(): Promise<void> {
+		return Promise.resolve();
 	}
 }
 

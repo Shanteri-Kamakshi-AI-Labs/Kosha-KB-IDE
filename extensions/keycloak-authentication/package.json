@@ -1,0 +1,46 @@
+{
+  "name": "keycloak-authentication",
+  "displayName": "Kosha Keycloak Authentication",
+  "description": "Sign in to Kosha KB IDE with Keycloak (OIDC).",
+  "publisher": "kosha",
+  "license": "MIT",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "authentication": [
+      {
+        "label": "Kosha",
+        "id": "keycloak"
+      }
+    ],
+    "commands": [
+      {
+        "command": "kosha.auth.signIn",
+        "title": "Sign in to Kosha",
+        "category": "Kosha"
+      },
+      {
+        "command": "kosha.auth.signOut",
+        "title": "Sign out of Kosha",
+        "category": "Kosha"
+      }
+    ]
+  }
+}

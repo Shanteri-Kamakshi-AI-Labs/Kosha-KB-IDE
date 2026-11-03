@@ -1,0 +1,48 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.kosha-agents-pane {
+	padding: 12px 14px;
+	box-sizing: border-box;
+	height: 100%;
+	overflow: auto;
+}
+
+.kosha-agents-pane-intro {
+	margin: 0 0 14px;
+	color: var(--vscode-descriptionForeground);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.kosha-agents-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.kosha-agent {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 10px 12px;
+	border: 1px solid var(--vscode-widget-border, transparent);
+	border-radius: 6px;
+	background: var(--vscode-sideBar-background);
+}
+
+.kosha-agent-name {
+	font-weight: 600;
+	color: var(--vscode-foreground);
+}
+
+.kosha-agent-blurb {
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+	line-height: 1.35;
+}

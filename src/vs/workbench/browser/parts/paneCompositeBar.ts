@@ -438,6 +438,19 @@ export class PaneCompositeBar extends Disposable {
 		const viewContainer = isString(viewContainerOrId) ? this.getViewContainer(viewContainerOrId) : viewContainerOrId;
 		const viewContainerId = isString(viewContainerOrId) ? viewContainerOrId : viewContainerOrId.id;
 
+		// Kosha: hide non-KB IDE chrome from the sidebar activity bar (Search stays).
+		if (this.location === ViewContainerLocation.Sidebar && (
+			viewContainerId === 'workbench.view.debug' ||
+			viewContainerId === 'workbench.view.extensions' ||
+			viewContainerId === 'workbench.view.scm' ||
+			viewContainerId === 'workbench.view.extension.test' ||
+			viewContainerId === 'workbench.view.testing' ||
+			viewContainerId === 'workbench.view.extension.copilot-chat' ||
+			viewContainerId === 'workbench.sessions.panel.chatDebugContainer'
+		)) {
+			return true;
+		}
+
 		if (viewContainer) {
 			if (viewContainer.hideIfEmpty) {
 				if (this.viewService.isViewContainerActive(viewContainerId)) {

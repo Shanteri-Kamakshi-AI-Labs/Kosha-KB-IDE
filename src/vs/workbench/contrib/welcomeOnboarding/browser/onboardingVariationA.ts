@@ -10,7 +10,6 @@ import { isCancellationError } from '../../../../base/common/errors.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 import { URI } from '../../../../base/common/uri.js';
 import { isWindows, isMacintosh, isLinux } from '../../../../base/common/platform.js';
-import { assertDefined } from '../../../../base/common/types.js';
 import { FileAccess } from '../../../../base/common/network.js';
 import { ILayoutService } from '../../../../platform/layout/browser/layoutService.js';
 import { KeyCode } from '../../../../base/common/keyCodes.js';
@@ -28,13 +27,13 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { defaultInputBoxStyles } from '../../../../platform/theme/browser/defaultStyles.js';
+import { IDefaultChatAgent } from '../../../../base/common/product.js';
 import product from '../../../../platform/product/common/product.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { InstallChatEvent, InstallChatClassification, ChatSetupStrategy } from '../../chat/browser/chatSetup/chatSetup.js';
 import { IChatMicrosoftSignInProbeService } from '../../chat/browser/chatSetup/chatSetupMicrosoftProbe.js';
-import { autorun } from '../../../../base/common/observable.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IAccessibilityService } from '../../../../platform/accessibility/common/accessibility.js';
 import {
@@ -78,9 +77,6 @@ type OnboardingActionEvent = {
 
 type EnterpriseSignInUiState = 'options' | 'instance' | 'progress';
 
-assertDefined(product.defaultChatAgent, 'Onboarding requires a default chat agent product configuration.');
-const defaultChat = product.defaultChatAgent;
-
 /**
  * Variation A — Classic Wizard Modal
  *
@@ -92,6 +88,9 @@ const defaultChat = product.defaultChatAgent;
  * 1. Sign In — sessions-style sign-in hero with GitHub Copilot, Google, and Apple options, plus
  *    Microsoft when {@link IChatMicrosoftSignInProbeService} offers it
  * 2. Personalize — Theme selection grid + keymap pills
+ *
+ * When {@link product.defaultChatAgent} is absent (Kosha builds without Copilot),
+ * {@link show} is a no-op so workbench startup is not blocked.
  */
 export class OnboardingVariationA extends Disposable implements IOnboardingService {
 
@@ -102,6 +101,11 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 	private readonly _onDidDismiss = this._register(new Emitter<void>());
 	readonly onDidDismiss: Event<void> = this._onDidDismiss.event;
+
+	/** Present after {@link show} succeeds; Copilot-less builds never reach UI that uses this. */
+	private get defaultChat(): IDefaultChatAgent {
+		return (product as { defaultChatAgent?: IDefaultChatAgent }).defaultChatAgent!;
+	}
 
 	private overlay: HTMLElement | undefined;
 	private card: HTMLElement | undefined;
@@ -148,7 +152,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IAccessibilityService private readonly accessibilityService: IAccessibilityService,
-		@IChatMicrosoftSignInProbeService private readonly microsoftSignInProbeService: IChatMicrosoftSignInProbeService,
+		@IChatMicrosoftSignInProbeService _microsoftSignInProbeService: IChatMicrosoftSignInProbeService,
 		@IWorkspaceTrustManagementService private readonly workspaceTrustManagementService: IWorkspaceTrustManagementService,
 	) {
 		super();
@@ -170,6 +174,12 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 	}
 
 	show(): void {
+		// Kosha: product.json may omit defaultChatAgent; do not crash workbench startup.
+		if (!(product as { defaultChatAgent?: IDefaultChatAgent }).defaultChatAgent) {
+			this._onDidDismiss.fire();
+			return;
+		}
+
 		if (this.overlay) {
 			return;
 		}
@@ -520,12 +530,12 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 		// GitHub Copilot disclaimer
 		const copilotDisclaimer = append(disclaimerCol, $('.onboarding-a-signin-disclaimer'));
-		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.prefix', "By signing in, you agree to {0}'s ", defaultChat.provider.default.name));
-		this._createInlineLink(copilotDisclaimer, localize('onboarding.signIn.disclaimer.terms', "Terms"), defaultChat.termsStatementUrl);
+		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.prefix', "By signing in, you agree to {0}'s ", this.defaultChat.provider.default.name));
+		this._createInlineLink(copilotDisclaimer, localize('onboarding.signIn.disclaimer.terms', "Terms"), this.defaultChat.termsStatementUrl);
 		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.middle', " and "));
-		this._createInlineLink(copilotDisclaimer, localize('onboarding.signIn.disclaimer.privacy', "Privacy Statement"), defaultChat.privacyStatementUrl);
-		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.copilotPrefix', ". {0} Copilot may show ", defaultChat.provider.default.name));
-		this._createInlineLink(copilotDisclaimer, localize('onboarding.signIn.disclaimer.publicCode', "public code"), defaultChat.publicCodeMatchesUrl);
+		this._createInlineLink(copilotDisclaimer, localize('onboarding.signIn.disclaimer.privacy', "Privacy Statement"), this.defaultChat.privacyStatementUrl);
+		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.copilotPrefix', ". {0} Copilot may show ", this.defaultChat.provider.default.name));
+		this._createInlineLink(copilotDisclaimer, localize('onboarding.signIn.disclaimer.publicCode', "public code"), this.defaultChat.publicCodeMatchesUrl);
 		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.improveSuffix', " suggestions and use your data to improve the product."));
 		copilotDisclaimer.append(' ');
 		copilotDisclaimer.append(localize('onboarding.signIn.disclaimer.settingsPrefix', "You can change these "));
@@ -534,54 +544,14 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 	}
 
 	private _renderDefaultSignInActions(actions: HTMLElement): void {
-		const githubBtn = this._registerStepFocusable(this._createSignInButton(actions, 'github', localize('onboarding.signIn.github', "Continue with GitHub"), {
+		// Kosha: Keycloak-only — no GitHub / Google / Apple / Microsoft social buttons.
+		const koshaBtn = this._registerStepFocusable(this._createSignInButton(actions, 'github', localize('onboarding.signIn.kosha', "Sign in to Kosha"), {
 			emphasized: true,
-			label: localize('onboarding.signIn.github.aria', "Continue with GitHub")
+			label: localize('onboarding.signIn.kosha.aria', "Sign in to Kosha")
 		}));
-		this.stepDisposables.add(addDisposableListener(githubBtn, EventType.CLICK, () => {
-			this._logAction('signIn', undefined, 'github');
-			this._handleSignIn();
-		}));
-
-		const googleBtn = this._registerStepFocusable(this._createSignInButton(actions, 'google', localize('onboarding.signIn.google', "Continue with Google"), {
-			iconOnly: true,
-			label: localize('onboarding.signIn.google', "Continue with Google")
-		}));
-		this.stepDisposables.add(addDisposableListener(googleBtn, EventType.CLICK, () => {
-			this._logAction('signIn', undefined, 'google');
-			this._handleSignIn('google');
-		}));
-
-		const appleBtn = this._registerStepFocusable(this._createSignInButton(actions, 'apple', localize('onboarding.signIn.apple', "Continue with Apple"), {
-			iconOnly: true,
-			label: localize('onboarding.signIn.apple', "Continue with Apple")
-		}));
-		this.stepDisposables.add(addDisposableListener(appleBtn, EventType.CLICK, () => {
-			this._logAction('signIn', undefined, 'apple');
-			this._handleSignIn('apple');
-		}));
-
-		const microsoftBtn = this._registerStepFocusable(this._createSignInButton(actions, 'microsoft', localize('onboarding.signIn.microsoft', "Continue with Microsoft"), {
-			iconOnly: true,
-			label: localize('onboarding.signIn.microsoft', "Continue with Microsoft")
-		}));
-		this.stepDisposables.add(addDisposableListener(microsoftBtn, EventType.CLICK, () => {
-			this._logAction('signIn', undefined, 'microsoft');
-			this._handleSignIn(defaultChat.provider.microsoft.id);
-		}));
-		// Only offered once a linked Microsoft account is found, which can happen while this step shows.
-		this.microsoftSignInProbeService.notifySignInShown();
-		this.stepDisposables.add(autorun(reader => {
-			microsoftBtn.style.display = this.microsoftSignInProbeService.offerMicrosoftSignIn.read(reader) ? '' : 'none';
-		}));
-
-		const gheBtn = this._registerStepFocusable(this._createSignInButton(actions, 'github-enterprise', localize('onboarding.signIn.ghe', "GHE"), {
-			textOnly: true,
-			label: localize('onboarding.signIn.ghe.aria', "Continue with GitHub Enterprise")
-		}));
-		this.stepDisposables.add(addDisposableListener(gheBtn, EventType.CLICK, () => {
-			this._logAction('signIn', undefined, 'github-enterprise');
-			void this._handleEnterpriseSignIn();
+		this.stepDisposables.add(addDisposableListener(koshaBtn, EventType.CLICK, () => {
+			this._logAction('signIn', undefined, 'keycloak');
+			void this.commandService.executeCommand('kosha.auth.signIn');
 		}));
 	}
 
@@ -589,7 +559,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 	private _renderEnterpriseInstanceForm(actions: HTMLElement): void {
 		const enterprisePromptLabel = this._getEnterpriseInstancePromptLabel();
-		const replacedUri = getConfiguredGitHubEnterpriseUris(this.configurationService, this.workspaceTrustManagementService.isWorkspaceTrusted(), defaultChat.providerUriSetting).find(uri => !isValidGitHubEnterpriseUri(uri));
+		const replacedUri = getConfiguredGitHubEnterpriseUris(this.configurationService, this.workspaceTrustManagementService.isWorkspaceTrusted(), this.defaultChat.providerUriSetting).find(uri => !isValidGitHubEnterpriseUri(uri));
 
 		const container = append(actions, $('.onboarding-a-signin-ghe-input'));
 
@@ -682,11 +652,11 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		spinner.classList.add(...ThemeIcon.asClassNameArray(Codicon.loading), 'codicon-modifier-spin');
 		spinner.setAttribute('aria-hidden', 'true');
 		const message = append(container, $('.onboarding-a-signin-ghe-progress-message'));
-		message.textContent = localize('onboarding.signIn.enterprise.progress', "Waiting for {0} sign-in to complete...", defaultChat.provider.enterprise.name);
+		message.textContent = localize('onboarding.signIn.enterprise.progress', "Waiting for {0} sign-in to complete...", this.defaultChat.provider.enterprise.name);
 	}
 
 	private _getEnterpriseInstancePromptLabel(): string {
-		return localize('onboarding.signIn.enterprise.prompt', "What is your {0} instance?", defaultChat.provider.enterprise.name);
+		return localize('onboarding.signIn.enterprise.prompt', "What is your {0} instance?", this.defaultChat.provider.enterprise.name);
 	}
 
 	private _setEnterpriseSignInUiState(state: EnterpriseSignInUiState): void {
@@ -760,7 +730,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 	private async _handleEnterpriseSignIn(): Promise<void> {
 		let uris: readonly string[];
 		try {
-			uris = getConfiguredGitHubEnterpriseUris(this.configurationService, this.workspaceTrustManagementService.isWorkspaceTrusted(), defaultChat.providerUriSetting);
+			uris = getConfiguredGitHubEnterpriseUris(this.configurationService, this.workspaceTrustManagementService.isWorkspaceTrusted(), this.defaultChat.providerUriSetting);
 		} catch {
 			this._notifyEnterpriseSignInError();
 			return;
@@ -779,7 +749,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 	private async _submitEnterpriseInstance(resolvedUri: string, replacedUri?: string): Promise<void> {
 		try {
-			await addGitHubEnterpriseUri(this.configurationService, resolvedUri, this.workspaceTrustManagementService.isWorkspaceTrusted(), defaultChat.providerUriSetting, replacedUri);
+			await addGitHubEnterpriseUri(this.configurationService, resolvedUri, this.workspaceTrustManagementService.isWorkspaceTrusted(), this.defaultChat.providerUriSetting, replacedUri);
 			this.enterpriseInstanceValue = resolvedUri;
 			await this._handleEnterpriseSignIn();
 		} catch {
@@ -791,7 +761,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 	private async _runEnterpriseSignInSetup(): Promise<void> {
 		const watch = this.enterpriseSignInWatch ?? StopWatch.create();
-		const provider = defaultChat.provider.enterprise.id;
+		const provider = this.defaultChat.provider.enterprise.id;
 		this._setEnterpriseSignInUiState('progress');
 
 		try {

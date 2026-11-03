@@ -194,6 +194,14 @@ export interface IProductConfiguration {
 	readonly trustedExtensionUrlPublicKeys?: IStringDictionary<string[]>;
 	readonly trustedExtensionAuthAccess?: string[] | IStringDictionary<string[]>;
 	readonly trustedMcpAuthAccess?: string[] | IStringDictionary<string[]>;
+	/** Kosha KB IDE: sole OIDC login (Keycloak). */
+	readonly koshaAuth?: {
+		readonly providerId: string;
+		readonly label: string;
+		readonly issuer: string;
+		readonly clientId: string;
+		readonly scopes: readonly string[];
+	};
 	readonly inheritAuthAccountPreference?: IStringDictionary<string[]>;
 	readonly trustedExtensionProtocolHandlers?: readonly string[];
 

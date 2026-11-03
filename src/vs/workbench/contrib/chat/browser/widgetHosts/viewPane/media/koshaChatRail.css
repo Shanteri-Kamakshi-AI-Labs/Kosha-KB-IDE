@@ -1,0 +1,25 @@
+/*---------------------------------------------------------------------------------------------
+ *  Kosha: Cursor-like Chat rail chrome in the Auxiliary Bar.
+ *--------------------------------------------------------------------------------------------*/
+
+.monaco-workbench .part.auxiliarybar .interactive-session {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.monaco-workbench .part.auxiliarybar .interactive-session .chat-input-container {
+	border-radius: 12px;
+	margin: 8px 10px 12px;
+	border: 1px solid var(--vscode-input-border, transparent);
+	background: var(--vscode-input-background);
+	box-shadow: 0 1px 0 color-mix(in srgb, var(--vscode-widget-shadow, #000) 20%, transparent);
+}
+
+.monaco-workbench .part.auxiliarybar .pane-header {
+	padding-inline: 8px;
+}
+
+.monaco-workbench .part.auxiliarybar .interactive-list {
+	padding-inline: 4px;
+}

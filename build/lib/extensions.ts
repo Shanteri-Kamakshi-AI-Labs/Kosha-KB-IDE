@@ -312,7 +312,6 @@ export function fromGithub({ name, version, repo, sha256, metadata }: IExtension
  */
 const nativeExtensions = [
 	'git',
-	'microsoft-authentication',
 ];
 
 const excludedExtensions = [
@@ -323,6 +322,9 @@ const excludedExtensions = [
 	'vscode-test-resolver',
 	'ms-vscode.node-debug',
 	'ms-vscode.node-debug2',
+	// Kosha: Keycloak-only auth — do not ship stock GitHub/Microsoft login providers.
+	'github-authentication',
+	'microsoft-authentication',
 ];
 
 const marketplaceWebExtensionsExclude = new Set([

@@ -41,6 +41,7 @@ const colorThemeSettingSchema: IConfigurationPropertySchema = {
 	enumDescriptions: colorThemeSettingEnumDescriptions,
 	enumItemLabels: colorThemeSettingEnumItemLabels,
 	errorMessage: nls.localize('colorThemeError', "Theme is unknown or not installed."),
+	included: false,
 };
 const preferredDarkThemeSettingSchema: IConfigurationPropertySchema = {
 	type: 'string', //
@@ -51,6 +52,7 @@ const preferredDarkThemeSettingSchema: IConfigurationPropertySchema = {
 	enumDescriptions: colorThemeSettingEnumDescriptions,
 	enumItemLabels: colorThemeSettingEnumItemLabels,
 	errorMessage: nls.localize('colorThemeError', "Theme is unknown or not installed."),
+	included: false,
 };
 const preferredLightThemeSettingSchema: IConfigurationPropertySchema = {
 	type: 'string',
@@ -61,6 +63,7 @@ const preferredLightThemeSettingSchema: IConfigurationPropertySchema = {
 	enumDescriptions: colorThemeSettingEnumDescriptions,
 	enumItemLabels: colorThemeSettingEnumItemLabels,
 	errorMessage: nls.localize('colorThemeError', "Theme is unknown or not installed."),
+	included: false,
 };
 const preferredHCDarkThemeSettingSchema: IConfigurationPropertySchema = {
 	type: 'string',
@@ -71,6 +74,7 @@ const preferredHCDarkThemeSettingSchema: IConfigurationPropertySchema = {
 	enumDescriptions: colorThemeSettingEnumDescriptions,
 	enumItemLabels: colorThemeSettingEnumItemLabels,
 	errorMessage: nls.localize('colorThemeError', "Theme is unknown or not installed."),
+	included: false,
 };
 const preferredHCLightThemeSettingSchema: IConfigurationPropertySchema = {
 	type: 'string',
@@ -81,13 +85,14 @@ const preferredHCLightThemeSettingSchema: IConfigurationPropertySchema = {
 	enumDescriptions: colorThemeSettingEnumDescriptions,
 	enumItemLabels: colorThemeSettingEnumItemLabels,
 	errorMessage: nls.localize('colorThemeError', "Theme is unknown or not installed."),
+	included: false,
 };
 const detectColorSchemeSettingSchema: IConfigurationPropertySchema = {
 	type: 'boolean',
 	markdownDescription: nls.localize({ key: 'detectColorScheme', comment: ['{0} and {1} will become links to other settings.'] }, 'If enabled, will automatically select a color theme based on the system color mode. If the system color mode is dark, {0} is used, else {1}.', formatSettingAsLink(ThemeSettings.PREFERRED_DARK_THEME), formatSettingAsLink(ThemeSettings.PREFERRED_LIGHT_THEME)),
-	default: false,
-	...(isWeb ? { agentsWindow: { default: true } } : {}),
+	default: true,
 	tags: [COLOR_THEME_CONFIGURATION_SETTINGS_TAG],
+	included: false,
 };
 
 const colorCustomizationsSchema: IConfigurationPropertySchema = {
@@ -107,7 +112,8 @@ const fileIconThemeSettingSchema: IConfigurationPropertySchema = {
 	enum: [null],
 	enumItemLabels: [nls.localize('noIconThemeLabel', 'None')],
 	enumDescriptions: [nls.localize('noIconThemeDesc', 'No file icons')],
-	errorMessage: nls.localize('iconThemeError', "File icon theme is unknown or not installed.")
+	errorMessage: nls.localize('iconThemeError', "File icon theme is unknown or not installed."),
+	included: false,
 };
 const productIconThemeSettingSchema: IConfigurationPropertySchema = {
 	type: ['string', 'null'],
@@ -116,7 +122,8 @@ const productIconThemeSettingSchema: IConfigurationPropertySchema = {
 	enum: [ThemeSettingDefaults.PRODUCT_ICON_THEME],
 	enumItemLabels: [nls.localize('defaultProductIconThemeLabel', 'Default')],
 	enumDescriptions: [nls.localize('defaultProductIconThemeDesc', 'Default')],
-	errorMessage: nls.localize('productIconThemeError', "Product icon theme is unknown or not installed.")
+	errorMessage: nls.localize('productIconThemeError', "Product icon theme is unknown or not installed."),
+	included: false,
 };
 
 const detectHCSchemeSettingSchema: IConfigurationPropertySchema = {
