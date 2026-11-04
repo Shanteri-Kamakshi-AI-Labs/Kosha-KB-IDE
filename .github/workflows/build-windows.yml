@@ -1,0 +1,121 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "src/**"
+      - "extensions/**"
+      - "build/**"
+      - "resources/**"
+      - "product.json"
+      - "package.json"
+      - "package-lock.json"
+      - "version.conf"
+      - ".nvmrc"
+      - ".github/workflows/build-windows.yml"
+      - ".github/scripts/kosha-ci-metadata.sh"
+
+env:
+  NEXUS_BASE_URL: https://registry.skaill.app
+  NEXUS_RAW_REPOSITORY: raw-hosted
+
+jobs:
+  build-windows:
+    name: Build and publish Windows installers
+    runs-on: windows-latest
+    timeout-minutes: 180
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Generate artifact metadata
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/scripts/kosha-ci-metadata.sh
+          USER_SETUP="$(kosha_desktop_artifact_name windows-x64-user-setup.exe)"
+          SYSTEM_SETUP="$(kosha_desktop_artifact_name windows-x64-system-setup.exe)"
+          USER_PATH="desktop/${REPO_NAME}/${BRANCH_NAME}/${USER_SETUP}"
+          SYSTEM_PATH="desktop/${REPO_NAME}/${BRANCH_NAME}/${SYSTEM_SETUP}"
+          {
+            echo "user_setup=${USER_SETUP}"
+            echo "system_setup=${SYSTEM_SETUP}"
+            echo "user_nexus_url=$(kosha_nexus_raw_url "${USER_PATH}")"
+            echo "system_nexus_url=$(kosha_nexus_raw_url "${SYSTEM_PATH}")"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile core
+        run: npm run gulp core-ci
+
+      - name: Package Windows client
+        run: npm run gulp vscode-win32-x64-min-ci
+
+      - name: Build Inno updater
+        run: npm run gulp vscode-win32-x64-inno-updater
+
+      - name: Build unsigned user setup
+        run: npm run gulp vscode-win32-x64-user-setup
+
+      - name: Build unsigned system setup
+        run: npm run gulp vscode-win32-x64-system-setup
+
+      - name: Stage installers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/windows
+          cp .build/win32-x64/user-setup/VSCodeSetup.exe \
+            "dist/windows/${{ steps.metadata.outputs.user_setup }}"
+          cp .build/win32-x64/system-setup/VSCodeSetup.exe \
+            "dist/windows/${{ steps.metadata.outputs.system_setup }}"
+          ls -la dist/windows
+
+      - name: Upload installers to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: kosha-windows-x64-setups
+          path: dist/windows/*
+          if-no-files-found: error
+
+      - name: Push installers to Nexus raw repository
+        shell: bash
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEXUS_USERNAME:-}" ] || [ -z "${NEXUS_PASSWORD:-}" ]; then
+            echo "NEXUS_USERNAME and NEXUS_PASSWORD secrets are required." >&2
+            exit 1
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+            --upload-file "dist/windows/${{ steps.metadata.outputs.user_setup }}" \
+            "${{ steps.metadata.outputs.user_nexus_url }}"
+
+          curl --fail-with-body --silent --show-error \
+            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+            --upload-file "dist/windows/${{ steps.metadata.outputs.system_setup }}" \
+            "${{ steps.metadata.outputs.system_nexus_url }}"
+
+          echo "Successfully published:"
+          echo "  ${{ steps.metadata.outputs.user_nexus_url }}"
+          echo "  ${{ steps.metadata.outputs.system_nexus_url }}"

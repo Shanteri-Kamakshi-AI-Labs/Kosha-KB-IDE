@@ -1,0 +1,124 @@
+name: Build macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "src/**"
+      - "extensions/**"
+      - "build/**"
+      - "resources/**"
+      - "product.json"
+      - "package.json"
+      - "package-lock.json"
+      - "version.conf"
+      - ".nvmrc"
+      - ".github/workflows/build-macos.yml"
+      - ".github/scripts/kosha-ci-metadata.sh"
+
+env:
+  NEXUS_BASE_URL: https://registry.skaill.app
+  NEXUS_RAW_REPOSITORY: raw-hosted
+  VSCODE_ARCH: arm64
+  VSCODE_QUALITY: stable
+
+jobs:
+  build-macos:
+    name: Build and publish macOS arm64
+    runs-on: macos-latest
+    timeout-minutes: 180
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Generate artifact metadata
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/scripts/kosha-ci-metadata.sh
+          ZIP_NAME="$(kosha_desktop_artifact_name darwin-arm64.zip)"
+          DMG_NAME="$(kosha_desktop_artifact_name darwin-arm64.dmg)"
+          ZIP_PATH="desktop/${REPO_NAME}/${BRANCH_NAME}/${ZIP_NAME}"
+          DMG_PATH="desktop/${REPO_NAME}/${BRANCH_NAME}/${DMG_NAME}"
+          {
+            echo "zip_name=${ZIP_NAME}"
+            echo "dmg_name=${DMG_NAME}"
+            echo "zip_nexus_url=$(kosha_nexus_raw_url "${ZIP_PATH}")"
+            echo "dmg_nexus_url=$(kosha_nexus_raw_url "${DMG_PATH}")"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile core
+        run: npm run gulp core-ci
+
+      - name: Package macOS client
+        run: npm run gulp vscode-darwin-arm64-min-ci
+
+      - name: Create zip archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/macos
+          REPO_ROOT="$PWD"
+          (
+            cd "../VSCode-darwin-arm64"
+            zip -Xry "${REPO_ROOT}/dist/macos/${{ steps.metadata.outputs.zip_name }}" *
+          )
+
+      - name: Create DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/darwin/dmg
+          node build/darwin/create-dmg.ts "$(dirname "$PWD")" .build/darwin/dmg
+          cp .build/darwin/dmg/VSCode-darwin-arm64.dmg \
+            "dist/macos/${{ steps.metadata.outputs.dmg_name }}"
+          ls -la dist/macos
+
+      - name: Upload macOS artifacts to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: kosha-macos-arm64
+          path: dist/macos/*
+          if-no-files-found: error
+
+      - name: Push macOS artifacts to Nexus raw repository
+        shell: bash
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEXUS_USERNAME:-}" ] || [ -z "${NEXUS_PASSWORD:-}" ]; then
+            echo "NEXUS_USERNAME and NEXUS_PASSWORD secrets are required." >&2
+            exit 1
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+            --upload-file "dist/macos/${{ steps.metadata.outputs.zip_name }}" \
+            "${{ steps.metadata.outputs.zip_nexus_url }}"
+
+          curl --fail-with-body --silent --show-error \
+            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+            --upload-file "dist/macos/${{ steps.metadata.outputs.dmg_name }}" \
+            "${{ steps.metadata.outputs.dmg_nexus_url }}"
+
+          echo "Successfully published:"
+          echo "  ${{ steps.metadata.outputs.zip_nexus_url }}"
+          echo "  ${{ steps.metadata.outputs.dmg_nexus_url }}"

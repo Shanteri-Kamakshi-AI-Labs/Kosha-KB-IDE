@@ -1,0 +1,153 @@
+name: Build Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "src/**"
+      - "extensions/**"
+      - "build/**"
+      - "resources/**"
+      - "product.json"
+      - "package.json"
+      - "package-lock.json"
+      - "version.conf"
+      - ".nvmrc"
+      - ".github/workflows/build-linux.yml"
+      - ".github/scripts/kosha-ci-metadata.sh"
+
+env:
+  NEXUS_BASE_URL: https://registry.skaill.app
+  NEXUS_RAW_REPOSITORY: raw-hosted
+
+jobs:
+  build-linux:
+    name: Build and publish Linux (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x64
+            deb_arch: amd64
+            rpm_arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            deb_arch: arm64
+            rpm_arch: aarch64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install packaging tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg-dev rpm
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Generate artifact metadata
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/scripts/kosha-ci-metadata.sh
+          ARCH="${{ matrix.arch }}"
+          TAR_NAME="$(kosha_desktop_artifact_name "linux-${ARCH}.tar.gz")"
+          DEB_NAME="$(kosha_desktop_artifact_name "linux-${ARCH}.deb")"
+          RPM_NAME="$(kosha_desktop_artifact_name "linux-${ARCH}.rpm")"
+          {
+            echo "tar_name=${TAR_NAME}"
+            echo "deb_name=${DEB_NAME}"
+            echo "rpm_name=${RPM_NAME}"
+            echo "tar_nexus_url=$(kosha_nexus_raw_url "desktop/${REPO_NAME}/${BRANCH_NAME}/${TAR_NAME}")"
+            echo "deb_nexus_url=$(kosha_nexus_raw_url "desktop/${REPO_NAME}/${BRANCH_NAME}/${DEB_NAME}")"
+            echo "rpm_nexus_url=$(kosha_nexus_raw_url "desktop/${REPO_NAME}/${BRANCH_NAME}/${RPM_NAME}")"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile core
+        run: npm run gulp core-ci
+
+      - name: Package Linux client
+        run: npm run gulp "vscode-linux-${{ matrix.arch }}-min-ci"
+
+      - name: Create tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/linux
+          tar -czf "dist/linux/${{ steps.metadata.outputs.tar_name }}" \
+            -C .. "VSCode-linux-${{ matrix.arch }}"
+
+      - name: Build deb package
+        run: |
+          set -euo pipefail
+          npm run gulp "vscode-linux-${{ matrix.arch }}-prepare-deb"
+          npm run gulp "vscode-linux-${{ matrix.arch }}-build-deb"
+          DEB="$(ls .build/linux/deb/${{ matrix.deb_arch }}/deb/*.deb | head -n 1)"
+          cp "${DEB}" "dist/linux/${{ steps.metadata.outputs.deb_name }}"
+
+      - name: Build rpm package
+        run: |
+          set -euo pipefail
+          npm run gulp "vscode-linux-${{ matrix.arch }}-prepare-rpm"
+          npm run gulp "vscode-linux-${{ matrix.arch }}-build-rpm"
+          RPM="$(ls .build/linux/rpm/${{ matrix.rpm_arch }}/*.rpm | head -n 1)"
+          cp "${RPM}" "dist/linux/${{ steps.metadata.outputs.rpm_name }}"
+          ls -la dist/linux
+
+      - name: Upload Linux artifacts to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: kosha-linux-${{ matrix.arch }}
+          path: dist/linux/*
+          if-no-files-found: error
+
+      - name: Push Linux artifacts to Nexus raw repository
+        shell: bash
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEXUS_USERNAME:-}" ] || [ -z "${NEXUS_PASSWORD:-}" ]; then
+            echo "NEXUS_USERNAME and NEXUS_PASSWORD secrets are required." >&2
+            exit 1
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+            --upload-file "dist/linux/${{ steps.metadata.outputs.tar_name }}" \
+            "${{ steps.metadata.outputs.tar_nexus_url }}"
+
+          curl --fail-with-body --silent --show-error \
+            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+            --upload-file "dist/linux/${{ steps.metadata.outputs.deb_name }}" \
+            "${{ steps.metadata.outputs.deb_nexus_url }}"
+
+          curl --fail-with-body --silent --show-error \
+            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
+            --upload-file "dist/linux/${{ steps.metadata.outputs.rpm_name }}" \
+            "${{ steps.metadata.outputs.rpm_nexus_url }}"
+
+          echo "Successfully published:"
+          echo "  ${{ steps.metadata.outputs.tar_nexus_url }}"
+          echo "  ${{ steps.metadata.outputs.deb_nexus_url }}"
+          echo "  ${{ steps.metadata.outputs.rpm_nexus_url }}"
