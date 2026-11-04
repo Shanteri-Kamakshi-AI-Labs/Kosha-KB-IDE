@@ -6,12 +6,17 @@
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
+import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 import { IViewContainersRegistry, IViewDescriptor, IViewsRegistry, ViewContainerLocation, Extensions as ViewExtensions } from '../../../common/views.js';
 import { AgentsViewContainerId, AgentsViewId } from '../common/agents.js';
+import { IKoshaAgentsService, KoshaAgentsService } from '../common/agentsService.js';
+import './agentsPreviewContribution.js';
 import { AgentsViewPane } from './agentsViewPane.js';
+
+registerSingleton(IKoshaAgentsService, KoshaAgentsService, InstantiationType.Delayed);
 
 const agentsIcon = registerIcon('kosha-agents-view-icon', Codicon.robot, localize('koshaAgentsViewIcon', 'View icon of the Agents view.'));
 

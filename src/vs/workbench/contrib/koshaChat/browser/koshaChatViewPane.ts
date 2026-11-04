@@ -24,6 +24,7 @@ import { ViewPane } from '../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../common/views.js';
 import { MarkedKatexSupport } from '../../markdown/browser/markedKatexSupport.js';
+import { IKoshaAgentsService } from '../../agents/common/agentsService.js';
 import { IKoshaKshetroService } from '../../kshetro/common/kshetroService.js';
 import { IKoshaProvider } from '../common/koshaApiTypes.js';
 import { IKoshaTranscriptEntry, KoshaChatSessionController } from './koshaChatSessionController.js';
@@ -33,6 +34,7 @@ export class KoshaChatViewPane extends ViewPane {
 	private readonly session: KoshaChatSessionController;
 	private readonly clipboardService: IClipboardService;
 	private readonly kshetro: IKoshaKshetroService;
+	private readonly agents: IKoshaAgentsService;
 	private readonly ui = this._register(new DisposableStore());
 	private readonly markdownStore = this._register(new DisposableStore());
 	private katexReady = false;
@@ -50,6 +52,7 @@ export class KoshaChatViewPane extends ViewPane {
 	private attachChips: HTMLElement | undefined;
 	private popoverHost: HTMLElement | undefined;
 	private projectChip: HTMLElement | undefined;
+	private agentChip: HTMLElement | undefined;
 	private pendingFiles: File[] = [];
 	private openPopover: 'model' | 'history' | 'skills' | undefined;
 	private skillHighlight = 0;
@@ -68,10 +71,12 @@ export class KoshaChatViewPane extends ViewPane {
 		@IHoverService hoverService: IHoverService,
 		@IClipboardService clipboardService: IClipboardService,
 		@IKoshaKshetroService kshetro: IKoshaKshetroService,
+		@IKoshaAgentsService agents: IKoshaAgentsService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this.clipboardService = clipboardService;
 		this.kshetro = kshetro;
+		this.agents = agents;
 		this.session = this._register(instantiationService.createInstance(KoshaChatSessionController));
 		this._register(this.session.onDidChangeEntries(entries => this.renderTranscript(entries)));
 		this._register(this.session.onDidChangeBusy(busy => this.syncBusy(busy)));
@@ -79,13 +84,14 @@ export class KoshaChatViewPane extends ViewPane {
 			this.renderTabs();
 			this.renderHistoryList();
 			this.syncPickerLabels();
-			this.syncProjectChip();
+			this.syncScopeChips();
 		}));
 		this._register(this.kshetro.onDidChangeSelectedProject(() => {
-			this.syncProjectChip();
+			this.syncScopeChips();
 			this.renderTabs();
 			this.renderHistoryList();
 		}));
+		this._register(this.agents.onDidChangeSelectedHarness(() => this.syncScopeChips()));
 	}
 
 	protected override renderBody(container: HTMLElement): void {
@@ -99,6 +105,8 @@ export class KoshaChatViewPane extends ViewPane {
 		const strip = dom.append(root, dom.$('.kosha-chat-strip'));
 		this.projectChip = dom.append(strip, dom.$('.kosha-chat-project-chip'));
 		this.projectChip.style.display = 'none';
+		this.agentChip = dom.append(strip, dom.$('.kosha-chat-agent-chip'));
+		this.agentChip.style.display = 'none';
 		this.tabsEl = dom.append(strip, dom.$('.kosha-chat-tabs'));
 		const stripActions = dom.append(strip, dom.$('.kosha-chat-strip-actions'));
 
@@ -251,22 +259,32 @@ export class KoshaChatViewPane extends ViewPane {
 		this.renderTranscript(this.session.entries);
 		this.syncBusy(this.session.busy);
 		this.syncPickerLabels();
-		this.syncProjectChip();
+		this.syncScopeChips();
 	}
 
-	private syncProjectChip(): void {
-		if (!this.projectChip) {
-			return;
+	private syncScopeChips(): void {
+		if (this.projectChip) {
+			const projectName = this.session.selectedProjectName;
+			if (!projectName) {
+				this.projectChip.style.display = 'none';
+				this.projectChip.textContent = '';
+			} else {
+				this.projectChip.style.display = '';
+				this.projectChip.textContent = projectName;
+				this.projectChip.title = localize('kosha.chat.projectScope', 'Chats scoped to Kshetro: {0}', projectName);
+			}
 		}
-		const name = this.session.selectedProjectName;
-		if (!name) {
-			this.projectChip.style.display = 'none';
-			this.projectChip.textContent = '';
-			return;
+		if (this.agentChip) {
+			const agentName = this.session.selectedHarnessName;
+			if (!agentName) {
+				this.agentChip.style.display = 'none';
+				this.agentChip.textContent = '';
+			} else {
+				this.agentChip.style.display = '';
+				this.agentChip.textContent = agentName;
+				this.agentChip.title = localize('kosha.chat.agentScope', 'Persona for replies: {0}', agentName);
+			}
 		}
-		this.projectChip.style.display = '';
-		this.projectChip.textContent = name;
-		this.projectChip.title = localize('kosha.chat.projectScope', 'Chats scoped to Kshetro: {0}', name);
 	}
 
 	private async onSend(): Promise<void> {

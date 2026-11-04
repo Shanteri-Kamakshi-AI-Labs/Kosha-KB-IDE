@@ -65,6 +65,62 @@ export interface IKoshaCreateProjectBody {
 	readonly harness_id?: string;
 }
 
+export interface IKoshaUpdateProjectBody {
+	readonly project_name?: string;
+	readonly harness_id?: string | null;
+}
+
+export interface IKoshaHarness {
+	readonly id: string;
+	readonly harness_name: string;
+	readonly description?: string | null;
+	readonly soul: string;
+	readonly guidelines: string;
+	readonly memory: string;
+	readonly interview_version?: number | null;
+	readonly source_platform_harness_id?: string | null;
+	readonly source_platform_code?: string | null;
+	readonly created_at?: string;
+	readonly updated_at?: string;
+}
+
+export interface IKoshaCreateHarnessBody {
+	readonly harness_name: string;
+	readonly soul: string;
+	readonly guidelines: string;
+	readonly memory: string;
+	readonly description?: string;
+}
+
+export interface IKoshaUpdateHarnessBody {
+	readonly harness_name?: string;
+	readonly soul?: string;
+	readonly guidelines?: string;
+	readonly memory?: string;
+	readonly description?: string;
+}
+
+export interface IKoshaGenerateHarnessBody {
+	readonly scenario: string;
+	readonly harness_name?: string;
+}
+
+export interface IKoshaPlatformHarness {
+	readonly id: string;
+	readonly code: string;
+	readonly harness_name: string;
+	readonly description?: string | null;
+	readonly active?: boolean;
+	readonly soul?: string;
+	readonly guidelines?: string;
+	readonly memory?: string;
+}
+
+export interface IKoshaFromPlatformHarnessBody {
+	readonly platform_harness_id: string;
+	readonly harness_name?: string;
+}
+
 export interface IKoshaAttachment {
 	readonly id: string;
 	readonly attachment_name: string;
@@ -108,6 +164,8 @@ export interface IKoshaCreateMessageBody {
 	answer_length?: KoshaAnswerLength;
 	hitl_on_tools?: true;
 	skill_names?: string[];
+	/** Active persona (harness) for this turn. */
+	harness_id?: string;
 	generate?: boolean;
 	request_key?: string;
 }
@@ -148,6 +206,7 @@ export interface IKoshaSendOptions {
 	readonly text: string;
 	readonly provider?: string;
 	readonly skillNames?: readonly string[];
+	readonly harnessId?: string;
 	readonly temperature?: number;
 	readonly thinkingEffort?: KoshaThinkingEffort;
 	readonly answerLength?: KoshaAnswerLength;

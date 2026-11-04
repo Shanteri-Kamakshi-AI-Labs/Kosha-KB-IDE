@@ -20,6 +20,7 @@ import {
 	IKoshaSession,
 	IKoshaSkill,
 } from '../common/koshaApiTypes.js';
+import { IKoshaAgentsService } from '../../agents/common/agentsService.js';
 import { IKoshaKshetroService } from '../../kshetro/common/kshetroService.js';
 import { KoshaApiClient } from './koshaApiClient.js';
 import { KoshaSocket } from './koshaSocket.js';
@@ -79,6 +80,7 @@ export class KoshaChatSessionController extends Disposable {
 		@IProductService product: IProductService,
 		@ICommandService commands: ICommandService,
 		@IKoshaKshetroService private readonly kshetro: IKoshaKshetroService,
+		@IKoshaAgentsService private readonly agents: IKoshaAgentsService,
 	) {
 		super();
 		this.client = new KoshaApiClient(requestService, auth, product, commands);
@@ -93,6 +95,14 @@ export class KoshaChatSessionController extends Disposable {
 
 	get selectedProjectName(): string | undefined {
 		return this.kshetro.selectedProject?.project_name;
+	}
+
+	get selectedHarnessId(): string | undefined {
+		return this.agents.selectedHarnessId;
+	}
+
+	get selectedHarnessName(): string | undefined {
+		return this.agents.selectedHarness?.harness_name;
 	}
 
 	get entries(): readonly IKoshaTranscriptEntry[] {
@@ -461,6 +471,10 @@ export class KoshaChatSessionController extends Disposable {
 		const skills = options.skillNames ?? this.selectedSkillNames;
 		if (skills.length) {
 			body.skill_names = [...skills];
+		}
+		const harnessId = options.harnessId ?? this.agents.selectedHarnessId;
+		if (harnessId) {
+			body.harness_id = harnessId;
 		}
 		return body;
 	}

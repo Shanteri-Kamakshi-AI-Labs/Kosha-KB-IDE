@@ -23,6 +23,7 @@ import { ViewPane } from '../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../common/views.js';
 import { IAuthenticationService } from '../../../services/authentication/common/authentication.js';
+import { IKoshaAgentsService, toggleSelectedId } from '../../agents/common/agentsService.js';
 import { KoshaApiClient } from '../../koshaChat/browser/koshaApiClient.js';
 import { IKoshaKshetroService } from '../common/kshetroService.js';
 
@@ -50,11 +51,13 @@ export class KshetroViewPane extends ViewPane {
 		@ICommandService commands: ICommandService,
 		@IQuickInputService private readonly quickInput: IQuickInputService,
 		@IKoshaKshetroService private readonly kshetro: IKoshaKshetroService,
+		@IKoshaAgentsService private readonly agents: IKoshaAgentsService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this.client = new KoshaApiClient(requestService, auth, product, commands);
 		this._register(this.kshetro.onDidChangeProjects(() => this.renderList()));
 		this._register(this.kshetro.onDidChangeSelectedProject(() => this.renderList()));
+		this._register(this.agents.onDidChangeSelectedHarness(() => void this.refresh()));
 	}
 
 	protected override renderBody(container: HTMLElement): void {
@@ -91,7 +94,7 @@ export class KshetroViewPane extends ViewPane {
 			this.statusEl.style.display = '';
 		}
 		try {
-			const projects = await this.client.listProjects(undefined, undefined, false);
+			const projects = await this.client.listProjects(this.agents.selectedHarnessId, undefined, false);
 			this.kshetro.setProjects(projects);
 			if (!projects.length && this.statusEl) {
 				this.statusEl.textContent = localize('kosha.kshetro.empty', 'No Kshetro yet. Create one or sign in.');
@@ -128,7 +131,7 @@ export class KshetroViewPane extends ViewPane {
 					? localize('kosha.kshetro.selected', 'Selected')
 					: localize('kosha.kshetro.open', 'Open');
 			this.ui.add(dom.addDisposableListener(btn, 'click', () => {
-				this.kshetro.setSelectedProject(project.id);
+				this.kshetro.setSelectedProject(toggleSelectedId(this.kshetro.selectedProjectId, project.id));
 			}));
 		}
 	}
@@ -143,7 +146,10 @@ export class KshetroViewPane extends ViewPane {
 			return;
 		}
 		try {
-			const project = await this.client.createProject({ project_name: name.trim() });
+			const project = await this.client.createProject({
+				project_name: name.trim(),
+				harness_id: this.agents.selectedHarnessId,
+			});
 			this.kshetro.upsertProject(project);
 			this.kshetro.setSelectedProject(project.id);
 			if (this.statusEl) {

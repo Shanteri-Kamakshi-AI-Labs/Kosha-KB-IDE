@@ -31,7 +31,8 @@
 	min-height: 36px;
 }
 
-.kosha-chat-project-chip {
+.kosha-chat-project-chip,
+.kosha-chat-agent-chip {
 	flex-shrink: 0;
 	max-width: 96px;
 	overflow: hidden;

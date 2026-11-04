@@ -11,16 +11,23 @@ import { asJson, asText, IRequestService } from '../../../../platform/request/co
 import { IAuthenticationService } from '../../../services/authentication/common/authentication.js';
 import {
 	IKoshaCancelResult,
+	IKoshaCreateHarnessBody,
 	IKoshaCreateMessageBody,
 	IKoshaCreateMessageResult,
 	IKoshaCreateProjectBody,
+	IKoshaFromPlatformHarnessBody,
+	IKoshaGenerateHarnessBody,
 	IKoshaGeneration,
+	IKoshaHarness,
 	IKoshaMessage,
 	IKoshaListSessionsQuery,
+	IKoshaPlatformHarness,
 	IKoshaProject,
 	IKoshaProvidersResponse,
 	IKoshaSession,
 	IKoshaSkill,
+	IKoshaUpdateHarnessBody,
+	IKoshaUpdateProjectBody,
 } from '../common/koshaApiTypes.js';
 import { getKoshaTimezone, resolveKoshaAccessToken } from './koshaAuthToken.js';
 
@@ -76,6 +83,42 @@ export class KoshaApiClient {
 
 	async createProject(body: IKoshaCreateProjectBody, token?: CancellationToken): Promise<IKoshaProject> {
 		return this.postJson<IKoshaProject>('/projects', body, { idempotent: true }, token);
+	}
+
+	async updateProject(projectId: string, body: IKoshaUpdateProjectBody, token?: CancellationToken): Promise<IKoshaProject> {
+		return this.putJson<IKoshaProject>(`/projects/${encodeURIComponent(projectId)}`, body, token);
+	}
+
+	async listHarnesses(token?: CancellationToken, promptSignIn = true): Promise<readonly IKoshaHarness[]> {
+		return (await this.getJson<IKoshaHarness[]>('/harnesses', undefined, token, promptSignIn)) ?? [];
+	}
+
+	async getHarness(harnessId: string, token?: CancellationToken): Promise<IKoshaHarness> {
+		return this.getJson<IKoshaHarness>(`/harnesses/${encodeURIComponent(harnessId)}`, undefined, token);
+	}
+
+	async createHarness(body: IKoshaCreateHarnessBody, token?: CancellationToken): Promise<IKoshaHarness> {
+		return this.postJson<IKoshaHarness>('/harnesses', body, { idempotent: true }, token);
+	}
+
+	async updateHarness(harnessId: string, body: IKoshaUpdateHarnessBody, token?: CancellationToken): Promise<IKoshaHarness> {
+		return this.putJson<IKoshaHarness>(`/harnesses/${encodeURIComponent(harnessId)}`, body, token);
+	}
+
+	async deleteHarness(harnessId: string, token?: CancellationToken): Promise<void> {
+		await this.deleteJson(`/harnesses/${encodeURIComponent(harnessId)}`, token);
+	}
+
+	async generateHarness(body: IKoshaGenerateHarnessBody, token?: CancellationToken): Promise<IKoshaHarness> {
+		return this.postJson<IKoshaHarness>('/harnesses/generate', body, { idempotent: true }, token);
+	}
+
+	async createHarnessFromPlatform(body: IKoshaFromPlatformHarnessBody, token?: CancellationToken): Promise<IKoshaHarness> {
+		return this.postJson<IKoshaHarness>('/harnesses/from-platform', body, { idempotent: true }, token);
+	}
+
+	async listPlatformHarnesses(token?: CancellationToken, promptSignIn = true): Promise<readonly IKoshaPlatformHarness[]> {
+		return (await this.getJson<IKoshaPlatformHarness[]>('/councils/platform-harnesses', undefined, token, promptSignIn)) ?? [];
 	}
 
 	async listSessions(query?: IKoshaListSessionsQuery, token?: CancellationToken, promptSignIn = true): Promise<readonly IKoshaSession[]> {
