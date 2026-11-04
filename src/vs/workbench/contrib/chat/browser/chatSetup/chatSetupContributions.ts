@@ -95,6 +95,13 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 		// Keycloak + Kosha Chat replace this surface. Methods below remain for tree compatibility.
 		void _actionViewItemService;
 		void _chatEntitlementService;
+		// Keep disabled helpers referenced so noUnusedLocals (core-ci) stays quiet.
+		void this.registerSetupAgents;
+		void this.registerGrowthSession;
+		void this.registerActions;
+		void this.registerSignInTitleBarEntry;
+		void this.registerUrlLinkHandler;
+		void this.checkExtensionInstallation;
 	}
 
 	private registerSetupAgents(context: ChatEntitlementContext, controller: Lazy<ChatSetupController>): void {

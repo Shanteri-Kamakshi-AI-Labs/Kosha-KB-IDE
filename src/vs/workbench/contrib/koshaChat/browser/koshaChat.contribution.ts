@@ -7,12 +7,18 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
+import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 import { IViewContainersRegistry, IViewDescriptor, IViewsRegistry, ViewContainerLocation, Extensions as ViewExtensions } from '../../../common/views.js';
+import { IKoshaChatAttachmentService, KoshaChatAttachmentService } from '../common/koshaChatAttachmentService.js';
 import { KoshaChatViewContainerId, KoshaChatViewId } from '../common/koshaChat.js';
+import { registerKoshaChatContextActions } from './koshaChatContextActions.js';
 import { KoshaChatViewPane } from './koshaChatViewPane.js';
+
+registerSingleton(IKoshaChatAttachmentService, KoshaChatAttachmentService, InstantiationType.Delayed);
+registerKoshaChatContextActions();
 
 const koshaChatIcon = registerIcon('kosha-chat-view-icon', Codicon.commentDiscussion, localize('koshaChatViewIcon', 'View icon of the Kosha Chat view.'));
 

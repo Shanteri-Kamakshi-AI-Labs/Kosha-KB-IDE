@@ -6,27 +6,52 @@
 import './media/koshaChat.css';
 import * as dom from '../../../../base/browser/dom.js';
 import { allowedMarkdownHtmlAttributes, allowedMarkdownHtmlTags, renderMarkdown } from '../../../../base/browser/markdownRenderer.js';
+import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
+import { basename } from '../../../../base/common/resources.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
+import { URI } from '../../../../base/common/uri.js';
+import { ILanguageService } from '../../../../editor/common/languages/language.js';
+import { getIconClasses } from '../../../../editor/common/services/getIconClasses.js';
+import { IModelService } from '../../../../editor/common/services/model.js';
 import { localize } from '../../../../nls.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
+import { FileKind, IFileService } from '../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { ViewPane } from '../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../common/views.js';
+import { ISearchService } from '../../../services/search/common/search.js';
 import { MarkedKatexSupport } from '../../markdown/browser/markedKatexSupport.js';
 import { IKoshaAgentsService } from '../../agents/common/agentsService.js';
 import { IKoshaKshetroService } from '../../kshetro/common/kshetroService.js';
+import { searchFilesAndFolders } from '../../search/browser/searchChatContext.js';
 import { IKoshaProvider } from '../common/koshaApiTypes.js';
+import { IKoshaChatAttachment, IKoshaChatAttachmentService } from '../common/koshaChatAttachmentService.js';
+import { getActiveAtToken, getActiveSlashToken } from '../common/koshaChatComposerTokens.js';
+import { buildFolderContextPrefix, koshaAttachmentPathLabel, materializeKoshaAttachments } from './koshaChatAttachmentResolve.js';
+import {
+	attachmentIdsInComposer,
+	clearComposer,
+	composerIsEmpty,
+	deleteTextBeforeCaret,
+	insertPillAtCaret,
+	plainTextBeforeCaret,
+	placeCaretAtEnd,
+	replaceAtTokenWithPill,
+	serializeComposer,
+	setComposerText,
+} from './koshaChatComposerDom.js';
 import { IKoshaTranscriptEntry, KoshaChatSessionController } from './koshaChatSessionController.js';
 
 export class KoshaChatViewPane extends ViewPane {
@@ -35,17 +60,23 @@ export class KoshaChatViewPane extends ViewPane {
 	private readonly clipboardService: IClipboardService;
 	private readonly kshetro: IKoshaKshetroService;
 	private readonly agents: IKoshaAgentsService;
+	private readonly attachments: IKoshaChatAttachmentService;
+	private readonly fileService: IFileService;
+	private readonly workspace: IWorkspaceContextService;
+	private readonly searchService: ISearchService;
+	private readonly configurationServiceRef: IConfigurationService;
+	private readonly modelService: IModelService;
+	private readonly languageService: ILanguageService;
 	private readonly ui = this._register(new DisposableStore());
 	private readonly markdownStore = this._register(new DisposableStore());
 	private katexReady = false;
 
-	private root: HTMLElement | undefined;
 	private tabsEl: HTMLElement | undefined;
 	private historyPanel: HTMLElement | undefined;
 	private historyList: HTMLElement | undefined;
 	private transcriptEl: HTMLElement | undefined;
 	private emptyEl: HTMLElement | undefined;
-	private inputEl: HTMLTextAreaElement | undefined;
+	private inputEl: HTMLElement | undefined;
 	private modelBtn: HTMLButtonElement | undefined;
 	private sendBtn: HTMLButtonElement | undefined;
 	private stopBtn: HTMLButtonElement | undefined;
@@ -54,9 +85,12 @@ export class KoshaChatViewPane extends ViewPane {
 	private projectChip: HTMLElement | undefined;
 	private agentChip: HTMLElement | undefined;
 	private pendingFiles: File[] = [];
-	private openPopover: 'model' | 'history' | 'skills' | undefined;
+	private openPopover: 'model' | 'history' | 'skills' | 'mentions' | undefined;
 	private skillHighlight = 0;
 	private skillMatches: { name: string; description?: string }[] = [];
+	private mentionHighlight = 0;
+	private mentionMatches: { uri: URI; kind: 'file' | 'folder'; label: string }[] = [];
+	private mentionSearchCts: CancellationTokenSource | undefined;
 
 	constructor(
 		options: IViewletViewOptions,
@@ -72,11 +106,24 @@ export class KoshaChatViewPane extends ViewPane {
 		@IClipboardService clipboardService: IClipboardService,
 		@IKoshaKshetroService kshetro: IKoshaKshetroService,
 		@IKoshaAgentsService agents: IKoshaAgentsService,
+		@IKoshaChatAttachmentService attachments: IKoshaChatAttachmentService,
+		@IFileService fileService: IFileService,
+		@IWorkspaceContextService workspace: IWorkspaceContextService,
+		@ISearchService searchService: ISearchService,
+		@IModelService modelService: IModelService,
+		@ILanguageService languageService: ILanguageService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this.clipboardService = clipboardService;
 		this.kshetro = kshetro;
 		this.agents = agents;
+		this.attachments = attachments;
+		this.fileService = fileService;
+		this.workspace = workspace;
+		this.searchService = searchService;
+		this.configurationServiceRef = configurationService;
+		this.modelService = modelService;
+		this.languageService = languageService;
 		this.session = this._register(instantiationService.createInstance(KoshaChatSessionController));
 		this._register(this.session.onDidChangeEntries(entries => this.renderTranscript(entries)));
 		this._register(this.session.onDidChangeBusy(busy => this.syncBusy(busy)));
@@ -92,6 +139,33 @@ export class KoshaChatViewPane extends ViewPane {
 			this.renderHistoryList();
 		}));
 		this._register(this.agents.onDidChangeSelectedHarness(() => this.syncScopeChips()));
+		this._register(this.attachments.onDidChange(() => this.renderAttachChips()));
+	}
+
+	focusInput(): void {
+		this.inputEl?.focus();
+	}
+
+	/** Attach context and insert Cursor-like inline pills into the composer. */
+	attachInline(items: readonly Omit<IKoshaChatAttachment, 'id'>[]): void {
+		const added = this.attachments.attach(items);
+		if (!this.inputEl) {
+			// Pane body not ready yet — pills insert when renderBody finishes via flushPendingPills.
+			this.pendingInline = [...(this.pendingInline ?? []), ...added];
+			return;
+		}
+		for (const item of added) {
+			insertPillAtCaret(this.inputEl, item);
+		}
+		this.focusInput();
+		this.syncComposerEmptyClass();
+	}
+
+	private pendingInline: IKoshaChatAttachment[] | undefined;
+
+	override focus(): void {
+		super.focus();
+		this.focusInput();
 	}
 
 	protected override renderBody(container: HTMLElement): void {
@@ -99,7 +173,6 @@ export class KoshaChatViewPane extends ViewPane {
 		this.ui.clear();
 
 		const root = dom.append(container, dom.$('.kosha-chat-pane'));
-		this.root = root;
 
 		// Session strip: tabs + history + new
 		const strip = dom.append(root, dom.$('.kosha-chat-strip'));
@@ -125,9 +198,14 @@ export class KoshaChatViewPane extends ViewPane {
 		this.ui.add(dom.addDisposableListener(newBtn, 'click', () => {
 			this.closePopovers();
 			this.pendingFiles = [];
+			this.attachments.clear();
+			if (this.inputEl) {
+				clearComposer(this.inputEl);
+				this.syncComposerEmptyClass();
+			}
 			this.renderAttachChips();
 			this.session.newChat();
-			this.inputEl?.focus();
+			this.focusInput();
 		}));
 
 		// History drawer
@@ -158,30 +236,51 @@ export class KoshaChatViewPane extends ViewPane {
 
 		this.attachChips = dom.append(well, dom.$('.kosha-chat-attach-chips'));
 
-		this.inputEl = dom.append(well, dom.$('textarea.kosha-chat-input')) as HTMLTextAreaElement;
-		this.inputEl.placeholder = localize('kosha.chat.placeholder', 'Plan, build, / for skills…');
-		this.inputEl.rows = 2;
-		this.ui.add(dom.addDisposableListener(this.inputEl, 'input', () => this.onComposerInput()));
+		this.inputEl = dom.append(well, dom.$('div.kosha-chat-input'));
+		this.inputEl.contentEditable = 'true';
+		this.inputEl.setAttribute('role', 'textbox');
+		this.inputEl.setAttribute('aria-multiline', 'true');
+		this.inputEl.dataset.placeholder = localize('kosha.chat.placeholder', 'Plan, build, @ files, / for skills…');
+		this.ui.add(dom.addDisposableListener(this.inputEl, 'input', () => {
+			this.syncComposerEmptyClass();
+			this.onComposerInput();
+		}));
 		this.ui.add(dom.addDisposableListener(this.inputEl, 'keydown', e => {
-			if (this.openPopover === 'skills') {
+			if (this.openPopover === 'skills' || this.openPopover === 'mentions') {
 				if (e.key === 'ArrowDown') {
 					e.preventDefault();
-					this.moveSkillHighlight(1);
+					if (this.openPopover === 'skills') {
+						this.moveSkillHighlight(1);
+					} else {
+						this.moveMentionHighlight(1);
+					}
 					return;
 				}
 				if (e.key === 'ArrowUp') {
 					e.preventDefault();
-					this.moveSkillHighlight(-1);
+					if (this.openPopover === 'skills') {
+						this.moveSkillHighlight(-1);
+					} else {
+						this.moveMentionHighlight(-1);
+					}
 					return;
 				}
 				if (e.key === 'Enter' && !e.shiftKey) {
 					e.preventDefault();
-					this.acceptHighlightedSkill();
+					if (this.openPopover === 'skills') {
+						this.acceptHighlightedSkill();
+					} else {
+						this.acceptHighlightedMention();
+					}
 					return;
 				}
-				if (e.key === 'Tab' && this.skillMatches.length) {
+				if (e.key === 'Tab' && (this.skillMatches.length || this.mentionMatches.length)) {
 					e.preventDefault();
-					this.acceptHighlightedSkill();
+					if (this.openPopover === 'skills') {
+						this.acceptHighlightedSkill();
+					} else {
+						this.acceptHighlightedMention();
+					}
 					return;
 				}
 				if (e.key === 'Escape') {
@@ -199,6 +298,14 @@ export class KoshaChatViewPane extends ViewPane {
 				void this.onSend();
 			}
 		}));
+		this.syncComposerEmptyClass();
+		if (this.pendingInline?.length) {
+			for (const item of this.pendingInline) {
+				insertPillAtCaret(this.inputEl, item);
+			}
+			this.pendingInline = undefined;
+			this.syncComposerEmptyClass();
+		}
 
 		const bar = dom.append(well, dom.$('.kosha-chat-bar'));
 		const left = dom.append(bar, dom.$('.kosha-chat-bar-left'));
@@ -291,15 +398,27 @@ export class KoshaChatViewPane extends ViewPane {
 		if (!this.inputEl || this.session.busy) {
 			return;
 		}
-		const text = this.inputEl.value;
-		if (!text.trim()) {
+		const rawText = serializeComposer(this.inputEl);
+		const pillIds = new Set(attachmentIdsInComposer(this.inputEl));
+		const attached = pillIds.size
+			? this.attachments.items.filter(a => pillIds.has(a.id))
+			: [...this.attachments.items];
+		if (!rawText.trim() && !this.pendingFiles.length && !attached.length) {
 			return;
 		}
 		this.closePopovers();
-		const files = this.pendingFiles;
+		const pickerFiles = this.pendingFiles;
 		this.pendingFiles = [];
+		const folderPrefix = buildFolderContextPrefix(attached, this.workspace);
+		const text = (folderPrefix && !attached.some(a => a.kind === 'folder' && rawText.includes(`@${a.label}`))
+			? `${folderPrefix}${rawText}`
+			: rawText).trim() || 'Attached context';
+		const materialised = await materializeKoshaAttachments(attached, this.fileService);
+		this.attachments.clear();
+		clearComposer(this.inputEl);
+		this.syncComposerEmptyClass();
 		this.renderAttachChips();
-		this.inputEl.value = '';
+		const files = [...pickerFiles, ...materialised];
 		await this.session.send({
 			text,
 			provider: this.session.selectedModelId ?? this.session.selectedModeId,
@@ -409,6 +528,10 @@ export class KoshaChatViewPane extends ViewPane {
 		this.openPopover = undefined;
 		this.skillMatches = [];
 		this.skillHighlight = 0;
+		this.mentionMatches = [];
+		this.mentionHighlight = 0;
+		this.mentionSearchCts?.cancel();
+		this.mentionSearchCts = undefined;
 		if (this.popoverHost) {
 			dom.clearNode(this.popoverHost);
 		}
@@ -421,14 +544,27 @@ export class KoshaChatViewPane extends ViewPane {
 		if (!this.inputEl) {
 			return;
 		}
-		const token = getActiveSlashToken(this.inputEl.value, this.inputEl.selectionStart ?? 0);
-		if (!token) {
-			if (this.openPopover === 'skills') {
-				this.closePopovers();
-			}
+		const { value, caret } = plainTextBeforeCaret(this.inputEl);
+		const at = getActiveAtToken(value, caret);
+		if (at) {
+			void this.renderMentionsPopover(at.query);
 			return;
 		}
-		this.renderSkillsPopover(token.query);
+		const slash = getActiveSlashToken(value, caret);
+		if (slash) {
+			this.renderSkillsPopover(slash.query);
+			return;
+		}
+		if (this.openPopover === 'skills' || this.openPopover === 'mentions') {
+			this.closePopovers();
+		}
+	}
+
+	private syncComposerEmptyClass(): void {
+		if (!this.inputEl) {
+			return;
+		}
+		this.inputEl.classList.toggle('empty', composerIsEmpty(this.inputEl));
 	}
 
 	private moveSkillHighlight(delta: number): void {
@@ -450,25 +586,204 @@ export class KoshaChatViewPane extends ViewPane {
 		if (!this.inputEl) {
 			return;
 		}
-		const caret = this.inputEl.selectionStart ?? this.inputEl.value.length;
-		const token = getActiveSlashToken(this.inputEl.value, caret);
+		const { value, caret } = plainTextBeforeCaret(this.inputEl);
+		const token = getActiveSlashToken(value, caret);
 		if (!token) {
 			this.closePopovers();
 			return;
 		}
-		const insert = `/${name} `;
-		this.inputEl.value = this.inputEl.value.slice(0, token.start) + insert + this.inputEl.value.slice(token.end);
-		const pos = token.start + insert.length;
-		this.inputEl.setSelectionRange(pos, pos);
-		this.inputEl.focus();
+		deleteTextBeforeCaret(this.inputEl, token.end - token.start);
+		const doc = this.inputEl.ownerDocument;
+		const sel = doc.getSelection();
+		const textNode = doc.createTextNode(`/${name} `);
+		if (sel && sel.rangeCount) {
+			const range = sel.getRangeAt(0);
+			range.insertNode(textNode);
+			range.setStartAfter(textNode);
+			range.collapse(true);
+			sel.removeAllRanges();
+			sel.addRange(range);
+		} else {
+			this.inputEl.appendChild(textNode);
+			placeCaretAtEnd(this.inputEl);
+		}
+		this.focusInput();
+		this.syncComposerEmptyClass();
 		this.closePopovers();
+	}
+
+	private moveMentionHighlight(delta: number): void {
+		if (!this.mentionMatches.length) {
+			return;
+		}
+		this.mentionHighlight = (this.mentionHighlight + delta + this.mentionMatches.length) % this.mentionMatches.length;
+		void this.renderMentionsPopover(undefined, true);
+	}
+
+	private acceptHighlightedMention(): void {
+		const mention = this.mentionMatches[this.mentionHighlight];
+		if (mention) {
+			this.insertMention(mention);
+		}
+	}
+
+	private insertMention(mention: { uri: URI; kind: 'file' | 'folder'; label: string }): void {
+		if (!this.inputEl) {
+			return;
+		}
+		const { value, caret } = plainTextBeforeCaret(this.inputEl);
+		const token = getActiveAtToken(value, caret);
+		if (!token) {
+			this.closePopovers();
+			return;
+		}
+		const added = this.attachments.attach({
+			kind: mention.kind,
+			uri: mention.uri,
+			label: mention.kind === 'folder' ? (basename(mention.uri) || mention.label) : basename(mention.uri),
+		});
+		const attachment = added[0] ?? this.attachments.items.find(a => a.uri.toString() === mention.uri.toString());
+		if (attachment) {
+			replaceAtTokenWithPill(this.inputEl, token.end - token.start, attachment);
+		}
+		this.focusInput();
+		this.syncComposerEmptyClass();
+		this.closePopovers();
+	}
+
+	private async renderMentionsPopover(query?: string, keepOpen = false): Promise<void> {
+		if (!this.popoverHost || !this.inputEl) {
+			return;
+		}
+		const { value, caret } = plainTextBeforeCaret(this.inputEl);
+		const token = getActiveAtToken(value, caret);
+		const q = (query ?? token?.query ?? '');
+		if (!token && !keepOpen) {
+			this.closePopovers();
+			return;
+		}
+
+		if (this.openPopover !== 'mentions') {
+			this.closePopovers();
+			this.openPopover = 'mentions';
+		}
+
+		if (!keepOpen) {
+			this.mentionSearchCts?.cancel();
+			this.mentionSearchCts = new CancellationTokenSource();
+			const cts = this.mentionSearchCts;
+			const folders = this.workspace.getWorkspace().folders;
+			const matches: { uri: URI; kind: 'file' | 'folder'; label: string }[] = [];
+			const seen = new Set<string>();
+			for (const folder of folders) {
+				if (basename(folder.uri).toLowerCase().includes(q.toLowerCase()) || !q) {
+					const key = folder.uri.toString();
+					if (!seen.has(key)) {
+						seen.add(key);
+						matches.push({ uri: folder.uri, kind: 'folder', label: koshaAttachmentPathLabel(folder.uri, this.workspace) || basename(folder.uri) });
+					}
+				}
+				try {
+					const result = await searchFilesAndFolders(
+						folder.uri,
+						q,
+						true,
+						cts.token,
+						undefined,
+						this.configurationServiceRef,
+						this.searchService,
+						20,
+					);
+					if (cts.token.isCancellationRequested) {
+						return;
+					}
+					for (const uri of result.folders) {
+						const key = uri.toString();
+						if (seen.has(key)) {
+							continue;
+						}
+						seen.add(key);
+						matches.push({ uri, kind: 'folder', label: koshaAttachmentPathLabel(uri, this.workspace) });
+					}
+					for (const uri of result.files) {
+						const key = uri.toString();
+						if (seen.has(key)) {
+							continue;
+						}
+						seen.add(key);
+						matches.push({ uri, kind: 'file', label: koshaAttachmentPathLabel(uri, this.workspace) });
+					}
+				} catch {
+					// Search optional; still show workspace roots.
+				}
+			}
+			this.mentionMatches = matches.slice(0, 30);
+			if (this.mentionHighlight >= this.mentionMatches.length) {
+				this.mentionHighlight = 0;
+			}
+		}
+
+		dom.clearNode(this.popoverHost);
+		const pop = dom.append(this.popoverHost, dom.$('.kosha-chat-popover kosha-chat-popover-mentions'));
+		const list = dom.append(pop, dom.$('.kosha-chat-popover-list'));
+		if (!this.mentionMatches.length) {
+			dom.append(list, dom.$('.kosha-chat-popover-empty')).textContent =
+				localize('kosha.chat.noMentions', 'No files or folders match');
+		} else {
+			this.mentionMatches.forEach((mention, i) => {
+				const item = dom.append(list, dom.$('button.kosha-chat-mention-item')) as HTMLButtonElement;
+				item.type = 'button';
+				if (i === this.mentionHighlight) {
+					item.classList.add('active');
+				}
+				const icon = dom.append(item, dom.$('span.kosha-chat-mention-icon'));
+				const kind = mention.kind === 'folder' ? FileKind.FOLDER : FileKind.FILE;
+				icon.classList.add(...getIconClasses(this.modelService, this.languageService, mention.uri, kind));
+				const name = dom.append(item, dom.$('span.kosha-chat-mention-name'));
+				name.textContent = basename(mention.uri) || mention.label;
+				name.title = mention.label;
+				this.ui.add(dom.addDisposableListener(item, 'click', () => this.insertMention(mention)));
+				this.ui.add(dom.addDisposableListener(item, 'mouseenter', () => {
+					this.mentionHighlight = i;
+					for (const child of list.querySelectorAll('.kosha-chat-mention-item')) {
+						child.classList.toggle('active', child === item);
+					}
+				}));
+			});
+		}
+
+		dom.append(pop, dom.$('.kosha-chat-mention-sep'));
+		const cats = dom.append(pop, dom.$('.kosha-chat-mention-cats'));
+		this.appendMentionCategory(cats, Codicon.files, localize('kosha.chat.mentionCatFiles', 'Files & Folders'), true);
+		this.appendMentionCategory(cats, Codicon.terminal, localize('kosha.chat.mentionCatTerminals', 'Terminals'), false);
+		this.appendMentionCategory(cats, Codicon.commentDiscussion, localize('kosha.chat.mentionCatChats', 'Past Chats'), false);
+		this.appendMentionCategory(cats, Codicon.gitBranch, localize('kosha.chat.mentionCatBranch', 'Branch'), false);
+		this.appendMentionCategory(cats, Codicon.globe, localize('kosha.chat.mentionCatBrowser', 'Browser'), false);
+	}
+
+	private appendMentionCategory(parent: HTMLElement, icon: ThemeIcon, label: string, enabled: boolean): void {
+		const row = dom.append(parent, dom.$(`button.kosha-chat-mention-cat${enabled ? '' : '.disabled'}`)) as HTMLButtonElement;
+		row.type = 'button';
+		row.disabled = !enabled;
+		const ic = dom.append(row, dom.$('span.kosha-chat-mention-cat-icon'));
+		ic.classList.add(...ThemeIcon.asClassNameArray(icon));
+		dom.append(row, dom.$('span.kosha-chat-mention-cat-label')).textContent = label;
+		const chev = dom.append(row, dom.$('span.kosha-chat-mention-cat-chev'));
+		chev.classList.add(...ThemeIcon.asClassNameArray(Codicon.chevronRight));
+		if (enabled) {
+			this.ui.add(dom.addDisposableListener(row, 'click', () => {
+				// Already browsing files/folders via @ — keep picker open on that list.
+				this.focusInput();
+			}));
+		}
 	}
 
 	private renderSkillsPopover(query?: string, keepOpen = false): void {
 		if (!this.popoverHost || !this.inputEl) {
 			return;
 		}
-		const token = getActiveSlashToken(this.inputEl.value, this.inputEl.selectionStart ?? 0);
+		const { value, caret } = plainTextBeforeCaret(this.inputEl);
+		const token = getActiveSlashToken(value, caret);
 		const q = (query ?? token?.query ?? '').toLowerCase();
 		if (!token && !keepOpen) {
 			this.closePopovers();
@@ -590,6 +905,7 @@ export class KoshaChatViewPane extends ViewPane {
 			return;
 		}
 		dom.clearNode(this.attachChips);
+		// Workspace file/folder/selection show as inline pills; chip row is only for file-picker uploads.
 		this.attachChips.style.display = this.pendingFiles.length ? '' : 'none';
 		for (const file of this.pendingFiles) {
 			const chip = dom.append(this.attachChips, dom.$('.kosha-chat-file-chip'));
@@ -653,9 +969,9 @@ export class KoshaChatViewPane extends ViewPane {
 		if (text === undefined || !this.inputEl) {
 			return;
 		}
-		this.inputEl.value = text;
-		this.inputEl.focus();
-		this.inputEl.setSelectionRange(text.length, text.length);
+		setComposerText(this.inputEl, text);
+		this.syncComposerEmptyClass();
+		this.focusInput();
 	}
 
 	private async onCopyAssistant(text: string, btn: HTMLButtonElement): Promise<void> {
@@ -709,7 +1025,7 @@ export class KoshaChatViewPane extends ViewPane {
 			this.stopBtn.style.display = busy ? '' : 'none';
 		}
 		if (this.inputEl) {
-			this.inputEl.readOnly = busy;
+			this.inputEl.contentEditable = busy ? 'false' : 'true';
 		}
 		// Refresh action affordances (edit/retry hidden while busy)
 		this.renderTranscript(this.session.entries);
@@ -780,18 +1096,6 @@ function groupModelsByTier(
 		}
 	}
 	return ordered;
-}
-
-/** Active `/token` at caret for skill autocomplete (no spaces in the token). */
-function getActiveSlashToken(value: string, caret: number): { start: number; end: number; query: string } | undefined {
-	const before = value.slice(0, Math.max(0, Math.min(caret, value.length)));
-	const m = before.match(/(?:^|[\s])(\/[^\s]*)$/);
-	if (!m) {
-		return undefined;
-	}
-	const token = m[1];
-	const start = before.length - token.length;
-	return { start, end: caret, query: token.slice(1) };
 }
 
 function formatRelative(iso: string): string {
