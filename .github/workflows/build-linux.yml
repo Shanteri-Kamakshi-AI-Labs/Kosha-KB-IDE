@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y fakeroot dpkg-dev rpm
+          sudo apt-get install -y pkg-config libkrb5-dev libxkbfile-dev fakeroot dpkg-dev rpm
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -74,13 +74,24 @@ jobs:
             echo "tar_name=${TAR_NAME}"
             echo "deb_name=${DEB_NAME}"
             echo "rpm_name=${RPM_NAME}"
-            echo "tar_nexus_url=$(kosha_nexus_raw_url "desktop/${REPO_NAME}/${BRANCH_NAME}/${TAR_NAME}")"
             echo "deb_nexus_url=$(kosha_nexus_raw_url "desktop/${REPO_NAME}/${BRANCH_NAME}/${DEB_NAME}")"
-            echo "rpm_nexus_url=$(kosha_nexus_raw_url "desktop/${REPO_NAME}/${BRANCH_NAME}/${RPM_NAME}")"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Install dependencies
-        run: npm ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            if npm ci; then
+              exit 0
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed after 5 attempts" >&2
+              exit 1
+            fi
+            echo "npm ci failed attempt ${i}, retrying..."
+            sleep 5
+          done
 
       - name: Compile core
         run: npm run gulp core-ci
@@ -120,7 +131,7 @@ jobs:
           path: dist/linux/*
           if-no-files-found: error
 
-      - name: Push Linux artifacts to Nexus raw repository
+      - name: Push deb package to Nexus raw repository
         shell: bash
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
@@ -134,20 +145,8 @@ jobs:
 
           curl --fail-with-body --silent --show-error \
             -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
-            --upload-file "dist/linux/${{ steps.metadata.outputs.tar_name }}" \
-            "${{ steps.metadata.outputs.tar_nexus_url }}"
-
-          curl --fail-with-body --silent --show-error \
-            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
             --upload-file "dist/linux/${{ steps.metadata.outputs.deb_name }}" \
             "${{ steps.metadata.outputs.deb_nexus_url }}"
 
-          curl --fail-with-body --silent --show-error \
-            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
-            --upload-file "dist/linux/${{ steps.metadata.outputs.rpm_name }}" \
-            "${{ steps.metadata.outputs.rpm_nexus_url }}"
-
           echo "Successfully published:"
-          echo "  ${{ steps.metadata.outputs.tar_nexus_url }}"
           echo "  ${{ steps.metadata.outputs.deb_nexus_url }}"
-          echo "  ${{ steps.metadata.outputs.rpm_nexus_url }}"

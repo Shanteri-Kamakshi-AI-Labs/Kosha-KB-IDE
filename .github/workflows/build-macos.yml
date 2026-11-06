@@ -51,17 +51,28 @@ jobs:
           source .github/scripts/kosha-ci-metadata.sh
           ZIP_NAME="$(kosha_desktop_artifact_name darwin-arm64.zip)"
           DMG_NAME="$(kosha_desktop_artifact_name darwin-arm64.dmg)"
-          ZIP_PATH="desktop/${REPO_NAME}/${BRANCH_NAME}/${ZIP_NAME}"
           DMG_PATH="desktop/${REPO_NAME}/${BRANCH_NAME}/${DMG_NAME}"
           {
             echo "zip_name=${ZIP_NAME}"
             echo "dmg_name=${DMG_NAME}"
-            echo "zip_nexus_url=$(kosha_nexus_raw_url "${ZIP_PATH}")"
             echo "dmg_nexus_url=$(kosha_nexus_raw_url "${DMG_PATH}")"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Install dependencies
-        run: npm ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            if npm ci; then
+              exit 0
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "npm ci failed after 5 attempts" >&2
+              exit 1
+            fi
+            echo "npm ci failed attempt ${i}, retrying..."
+            sleep 5
+          done
 
       - name: Compile core
         run: npm run gulp core-ci
@@ -97,7 +108,7 @@ jobs:
           path: dist/macos/*
           if-no-files-found: error
 
-      - name: Push macOS artifacts to Nexus raw repository
+      - name: Push DMG to Nexus raw repository
         shell: bash
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
@@ -111,14 +122,8 @@ jobs:
 
           curl --fail-with-body --silent --show-error \
             -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
-            --upload-file "dist/macos/${{ steps.metadata.outputs.zip_name }}" \
-            "${{ steps.metadata.outputs.zip_nexus_url }}"
-
-          curl --fail-with-body --silent --show-error \
-            -u "${NEXUS_USERNAME}:${NEXUS_PASSWORD}" \
             --upload-file "dist/macos/${{ steps.metadata.outputs.dmg_name }}" \
             "${{ steps.metadata.outputs.dmg_nexus_url }}"
 
           echo "Successfully published:"
-          echo "  ${{ steps.metadata.outputs.zip_nexus_url }}"
           echo "  ${{ steps.metadata.outputs.dmg_nexus_url }}"
