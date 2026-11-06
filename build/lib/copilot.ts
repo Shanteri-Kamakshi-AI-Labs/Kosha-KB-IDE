@@ -261,8 +261,9 @@ export function ensureCopilotPlatformPackage(platform: string, arch: string, nod
  * `node-pty` from the embedder (VS Code) via `hostRequire` and falls back to
  * its bundled copy only if that fails.
  *
- * Failures throw to fail the build because built-in packaging must guarantee
- * this artifact is present.
+ * Failures throw when the built-in Copilot extension is present, because
+ * packaging must then guarantee this artifact. Kosha excludes `copilot`
+ * (`build/lib/extensions.ts`), so a missing SDK is a no-op.
  */
 export function prepareBuiltInCopilotRipgrepShim(platform: string, arch: string, builtInCopilotExtensionDir: string, appNodeModulesDir: string, options: PrepareBuiltInCopilotOptions = {}): void {
 	const { nodePlatform, nodeArch } = toNodePlatformArch(platform, arch);
@@ -274,7 +275,8 @@ export function prepareBuiltInCopilotRipgrepShim(platform: string, arch: string,
 	const copilotBase = path.join(extensionNodeModules, '@github', 'copilot');
 	const copilotSdkBase = path.join(copilotBase, 'sdk');
 	if (!fs.existsSync(copilotSdkBase)) {
-		throw new Error(`[prepareBuiltInCopilotRipgrepShim] Copilot SDK directory not found at ${copilotSdkBase}`);
+		console.log(`[prepareBuiltInCopilotRipgrepShim] Copilot extension not packaged (${copilotSdkBase}); skipping ripgrep shim.`);
+		return;
 	}
 	materializeBuiltInCopilotSdkPlatformFiles(copilotPackagePlatformArch, tgrepPlatformArch, copilotBase, appNodeModulesDir, options);
 	pruneNonTargetCopilotSdkPrebuilds(copilotPackagePlatformArch, path.join(copilotSdkBase, 'prebuilds'), copilotPlatforms);

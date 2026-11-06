@@ -36,6 +36,7 @@ import { MarkedKatexSupport } from '../../markdown/browser/markedKatexSupport.js
 import { IKoshaAgentsService } from '../../agents/common/agentsService.js';
 import { IKoshaKshetroService } from '../../kshetro/common/kshetroService.js';
 import { searchFilesAndFolders } from '../../search/browser/searchChatContext.js';
+import { renderKoshaIcon } from '../../koshaIcons/browser/koshaIcon.js';
 import { IKoshaProvider } from '../common/koshaApiTypes.js';
 import { IKoshaChatAttachment, IKoshaChatAttachmentService } from '../common/koshaChatAttachmentService.js';
 import { getActiveAtToken, getActiveSlashToken } from '../common/koshaChatComposerTokens.js';
@@ -221,7 +222,8 @@ export class KoshaChatViewPane extends ViewPane {
 
 		this.transcriptEl = dom.append(root, dom.$('.kosha-chat-transcript'));
 		this.emptyEl = dom.append(this.transcriptEl, dom.$('.kosha-chat-empty'));
-		dom.append(this.emptyEl, dom.$('.kosha-chat-empty-mark'));
+		const emptyMark = dom.append(this.emptyEl, dom.$('.kosha-chat-empty-mark'));
+		emptyMark.appendChild(renderKoshaIcon('lucide:brain', { size: 16 }));
 		dom.append(this.emptyEl, dom.$('strong')).textContent = localize('kosha.chat.emptyTitle', 'Ask Kosha');
 		dom.append(this.emptyEl, dom.$('p.kosha-chat-empty-body')).textContent = localize(
 			'kosha.chat.emptyBody',

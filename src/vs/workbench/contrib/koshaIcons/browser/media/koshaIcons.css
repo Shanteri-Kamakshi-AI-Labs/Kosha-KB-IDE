@@ -1,0 +1,27 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.kosha-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 1em;
+	height: 1em;
+	font-size: 16px;
+	line-height: 1;
+	color: currentColor;
+	vertical-align: middle;
+}
+
+.kosha-icon.kosha-icon-svg svg {
+	width: 1em;
+	height: 1em;
+	display: block;
+}
+
+.kosha-icon.kosha-icon-missing {
+	opacity: 0.35;
+}

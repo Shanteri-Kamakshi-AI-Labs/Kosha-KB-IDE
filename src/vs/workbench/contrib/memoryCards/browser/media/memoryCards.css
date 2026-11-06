@@ -3,6 +3,23 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+/* Activity bar: Lucide brain (stroke SVG as mask so currentColor / theme still apply). */
+.monaco-workbench .codicon-memory-cards-view-icon::before {
+	content: "" !important;
+	display: block;
+	width: 24px;
+	height: 24px;
+	background-color: currentColor;
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 18V5'/%3E%3Cpath d='M15 13a4.17 4.17 0 01-3-4 4.17 4.17 0 01-3 4'/%3E%3Cpath d='M17.707 6.294A3 3 0 1012 5a3 3 0 10-5.707 1.294'/%3E%3Cpath d='M17.996 5.125a4 4 0 012.526 5.77'/%3E%3Cpath d='M18 18a4 4 0 002-7.465'/%3E%3Cpath d='M19.967 17.482a4 4 0 11-7.967.517 4 4 0 11-7.967-.517'/%3E%3Cpath d='M6 18a4 4 0 01-2-7.465'/%3E%3Cpath d='M6.004 5.125a4 4 0 00-2.526 5.77'/%3E%3C/svg%3E");
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: 16px 16px;
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 18V5'/%3E%3Cpath d='M15 13a4.17 4.17 0 01-3-4 4.17 4.17 0 01-3 4'/%3E%3Cpath d='M17.707 6.294A3 3 0 1012 5a3 3 0 10-5.707 1.294'/%3E%3Cpath d='M17.996 5.125a4 4 0 012.526 5.77'/%3E%3Cpath d='M18 18a4 4 0 002-7.465'/%3E%3Cpath d='M19.967 17.482a4 4 0 11-7.967.517 4 4 0 11-7.967-.517'/%3E%3Cpath d='M6 18a4 4 0 01-2-7.465'/%3E%3Cpath d='M6.004 5.125a4 4 0 00-2.526 5.77'/%3E%3C/svg%3E");
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: 16px 16px;
+}
+
 .memory-cards-pane {
 	padding: 12px 14px;
 	box-sizing: border-box;

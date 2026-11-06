@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import './media/memoryCards.css';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
@@ -13,7 +14,8 @@ import { IViewContainersRegistry, IViewDescriptor, IViewsRegistry, ViewContainer
 import { MemoryCardsViewContainerId, MemoryCardsViewId } from '../common/memoryCards.js';
 import { MemoryCardsViewPane } from './memoryCardsViewPane.js';
 
-const memoryCardsIcon = registerIcon('memory-cards-view-icon', Codicon.circuitBoard, localize('memoryCardsViewIcon', 'View icon of the Memory Cards view.'));
+// ThemeIcon id stays registered; activity-bar glyph is Lucide brain via CSS mask in memoryCards.css.
+const memoryCardsIcon = registerIcon('memory-cards-view-icon', Codicon.circuitBoard, localize('memoryCardsViewIcon', 'View icon of the Memory Cards view (Lucide brain).'));
 
 const memoryCardsViewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
 	id: MemoryCardsViewContainerId,

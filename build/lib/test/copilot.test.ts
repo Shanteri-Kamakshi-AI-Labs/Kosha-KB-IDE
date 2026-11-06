@@ -250,6 +250,19 @@ suite('copilot', () => {
 		});
 	});
 
+	test('skips the ripgrep shim when the built-in Copilot SDK is not packaged', () => {
+		const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-copilot-sdk-missing-test-'));
+		try {
+			const builtInCopilotExtensionDir = path.join(repoRoot, 'extensions', 'copilot');
+			const appNodeModulesDir = path.join(repoRoot, 'node_modules');
+			assert.doesNotThrow(() => prepareBuiltInCopilotRipgrepShim('win32', 'x64', builtInCopilotExtensionDir, appNodeModulesDir));
+			assert.doesNotThrow(() => prepareBuiltInCopilotRipgrepShim('darwin', 'arm64', builtInCopilotExtensionDir, appNodeModulesDir));
+			assert.doesNotThrow(() => prepareBuiltInCopilotRipgrepShim('linux', 'x64', builtInCopilotExtensionDir, appNodeModulesDir));
+		} finally {
+			fs.rmSync(repoRoot, { recursive: true, force: true });
+		}
+	});
+
 	test('materializes target Copilot SDK prebuilds and tgrep for the built-in extension', () => {
 		const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-copilot-sdk-prebuild-test-'));
 		try {

@@ -241,6 +241,7 @@ import './contrib/koshaTheme/browser/koshaThemeToggle.contribution.js';
 
 // Kosha KB MVP chrome strip (config defaults + notification filter)
 import './contrib/koshaChrome/browser/koshaChrome.contribution.js';
+import './contrib/koshaIcons/browser/koshaIcons.contribution.js';
 import './contrib/koshaChat/browser/koshaChat.contribution.js';
 
 // Chat

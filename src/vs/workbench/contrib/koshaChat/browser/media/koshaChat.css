@@ -220,11 +220,15 @@
 	padding-bottom: 32px;
 }
 .kosha-chat-empty-mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	width: 28px;
 	height: 28px;
 	border-radius: 50%;
 	border: 1px solid color-mix(in srgb, var(--kosha-gold) 40%, transparent);
 	background: radial-gradient(circle at 30% 30%, var(--kosha-gold-soft), transparent 70%);
+	color: color-mix(in srgb, var(--kosha-gold) 85%, var(--kosha-fg));
 }
 .kosha-chat-empty strong {
 	font-size: 15px;
